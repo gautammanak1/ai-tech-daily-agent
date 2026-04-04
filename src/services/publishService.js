@@ -42,7 +42,7 @@ async function publishToPublicRepo(articleContent, date) {
     logger.info(`Cloning public repo to ${tmpDir}...`);
     const git = simpleGit();
 
-    const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
+    const token = (process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '').replace(/[\r\n\s]+/g, '');
     let cloneUrl = PUBLIC_REPO;
     if (token) {
       cloneUrl = PUBLIC_REPO.replace('https://', `https://x-access-token:${token}@`);
