@@ -4,7 +4,7 @@ const { fetchAllNews } = require('./agents/fetchNews');
 const { filterAndRankAIContent, extractTrendingTopics } = require('./agents/filterAI');
 const { summarizeItems } = require('./agents/summarize');
 const { generateArticle } = require('./agents/generateArticle');
-const { writeArticle, articleExists } = require('./utils/fileWriter');
+const { writeArticle, getAvailableFilename } = require('./utils/fileWriter');
 const { publishToPublicRepo } = require('./services/publishService');
 const { searchTrendingRepos } = require('./services/githubService');
 const { toISODate } = require('./utils/dateFormatter');
@@ -22,8 +22,8 @@ async function commitAndPush(filePath, date) {
   }
 
   try {
-    const userName = process.env.GIT_USER_NAME || 'ai-tech-daily-bot';
-    const userEmail = process.env.GIT_USER_EMAIL || 'bot@example.com';
+    const userName = process.env.GIT_USER_NAME || 'gautammanak1';
+    const userEmail = process.env.GIT_USER_EMAIL || 'gautammanak1@gmail.com';
 
     await git.addConfig('user.name', userName, false, 'local');
     await git.addConfig('user.email', userEmail, false, 'local');
@@ -41,17 +41,13 @@ async function commitAndPush(filePath, date) {
 async function run() {
   const startTime = Date.now();
   const date = toISODate();
-  const filename = `${date}.md`;
 
   logger.info(`--- AI Tech Daily Agent — ${date} ---`);
 
-  const exists = await articleExists(filename, ARTICLE_CONFIG.outputDir);
-  if (exists) {
-    logger.info(`Article for ${date} already exists — skipping`);
-    return;
-  }
+  const filename = await getAvailableFilename(date, ARTICLE_CONFIG.outputDir);
+  logger.info(`Article filename: ${filename}`);
 
-  logger.info('Step 1/5: Fetching news from all sources...');
+  logger.info('Step 1/6: Fetching news from all sources...');
   const rawItems = await fetchAllNews();
 
   if (rawItems.length === 0) {
@@ -60,7 +56,7 @@ async function run() {
     return;
   }
 
-  logger.info('Step 2/5: Filtering AI-relevant content...');
+  logger.info('Step 2/6: Filtering AI-relevant content...');
   let aiItems = filterAndRankAIContent(rawItems);
 
   if (aiItems.length === 0) {
@@ -68,7 +64,7 @@ async function run() {
     aiItems = rawItems.slice(0, 10).map((item) => ({ ...item, relevance: 1 }));
   }
 
-  logger.info('Step 3/5: Extracting trending topics...');
+  logger.info('Step 3/6: Extracting trending topics...');
   const trends = extractTrendingTopics(aiItems, ARTICLE_CONFIG.maxTopTrends);
   logger.info('Trending topics:', trends);
 
@@ -85,7 +81,7 @@ async function run() {
   const filePath = await writeArticle(filename, article, ARTICLE_CONFIG.outputDir);
   await commitAndPush(filePath, date);
 
-  logger.info('Step 6/6: Publishing to public repo...');
+  logger.info('Publishing to public repo...');
   await publishToPublicRepo(article, date);
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
