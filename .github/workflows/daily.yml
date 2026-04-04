@@ -33,9 +33,7 @@ jobs:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
-          REDDIT_SECRET: ${{ secrets.REDDIT_SECRET }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
-          GIT_USER_NAME: 'ai-tech-daily-bot'
-          GIT_USER_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
+          GIT_USER_NAME: 'gautammanak1'
+          GIT_USER_EMAIL: 'gautammanak1@gmail.com'
         run: node src/main.js

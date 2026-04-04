@@ -37,7 +37,27 @@ const RSS_FEEDS = [
     category: 'tech',
   },
 
-  // Market & Business
+  // Web3 / Blockchain / Crypto
+  {
+    name: 'CoinDesk',
+    url: 'https://www.coindesk.com/arc/outboundfeeds/rss/',
+    weight: 3,
+    category: 'web3',
+  },
+  {
+    name: 'The Block',
+    url: 'https://www.theblock.co/rss.xml',
+    weight: 3,
+    category: 'web3',
+  },
+  {
+    name: 'Google News — Web3',
+    url: 'https://news.google.com/rss/search?q=web3+OR+blockchain+OR+defi+OR+%22smart+contract%22&hl=en-US&gl=US&ceid=US:en',
+    weight: 2,
+    category: 'web3',
+  },
+
+  // Market & Startups
   {
     name: 'Google News — Tech Market',
     url: 'https://news.google.com/rss/search?q=tech+stocks+OR+startup+funding+OR+tech+layoffs+OR+IPO&hl=en-US&gl=US&ceid=US:en',
@@ -50,20 +70,26 @@ const RSS_FEEDS = [
     weight: 3,
     category: 'market',
   },
-  {
-    name: 'Google News — Tech Industry',
-    url: 'https://news.google.com/rss/search?q=technology+industry+news&hl=en-US&gl=US&ceid=US:en',
-    weight: 2,
-    category: 'tech',
-  },
-];
 
-const REDDIT_SUBREDDITS = [
-  { name: 'r/artificial', subreddit: 'artificial', weight: 3, category: 'ai' },
-  { name: 'r/MachineLearning', subreddit: 'MachineLearning', weight: 4, category: 'ai' },
-  { name: 'r/LocalLLaMA', subreddit: 'LocalLLaMA', weight: 3, category: 'agents' },
-  { name: 'r/programming', subreddit: 'programming', weight: 1, category: 'tech' },
-  { name: 'r/technology', subreddit: 'technology', weight: 2, category: 'market' },
+  // Developer / Learning
+  {
+    name: 'Dev.to — AI',
+    url: 'https://dev.to/feed/tag/ai',
+    weight: 3,
+    category: 'learning',
+  },
+  {
+    name: 'Dev.to — Web3',
+    url: 'https://dev.to/feed/tag/web3',
+    weight: 3,
+    category: 'learning',
+  },
+  {
+    name: 'Dev.to — Tutorial',
+    url: 'https://dev.to/feed/tag/tutorial',
+    weight: 2,
+    category: 'learning',
+  },
 ];
 
 const HACKERNEWS = {
@@ -98,6 +124,17 @@ const AGENT_KEYWORDS = [
   'react agent', 'reasoning agent', 'chain of thought',
 ];
 
+const WEB3_KEYWORDS = [
+  'web3', 'blockchain', 'ethereum', 'solana', 'polygon', 'bitcoin',
+  'smart contract', 'defi', 'decentralized finance', 'nft', 'dao',
+  'dapp', 'decentralized app', 'token', 'tokenomics', 'staking',
+  'layer 2', 'l2', 'rollup', 'zk proof', 'zero knowledge',
+  'ipfs', 'decentralized storage', 'web3 wallet', 'metamask',
+  'hardhat', 'foundry', 'solidity', 'rust blockchain', 'cosmos',
+  'polkadot', 'avalanche', 'arbitrum', 'optimism', 'base chain',
+  'crypto', 'cryptocurrency', 'depin', 'rwa', 'real world asset',
+];
+
 const MARKET_KEYWORDS = [
   'funding', 'valuation', 'ipo', 'acquisition', 'merger', 'startup',
   'series a', 'series b', 'series c', 'venture capital', 'vc',
@@ -108,17 +145,17 @@ const MARKET_KEYWORDS = [
 ];
 
 const ARTICLE_CONFIG = {
-  maxItemsInArticle: 20,
+  maxItemsInArticle: 25,
   maxTopTrends: 5,
   outputDir: 'articles',
 };
 
 module.exports = {
   RSS_FEEDS,
-  REDDIT_SUBREDDITS,
   HACKERNEWS,
   AI_KEYWORDS,
   AGENT_KEYWORDS,
+  WEB3_KEYWORDS,
   MARKET_KEYWORDS,
   ARTICLE_CONFIG,
 };

@@ -1,12 +1,13 @@
-const { AI_KEYWORDS, AGENT_KEYWORDS, MARKET_KEYWORDS } = require('../config/sources');
+const { AI_KEYWORDS, AGENT_KEYWORDS, WEB3_KEYWORDS, MARKET_KEYWORDS } = require('../config/sources');
 const logger = require('../utils/logger').child('filter');
 
-const ALL_KEYWORDS = [...AI_KEYWORDS, ...AGENT_KEYWORDS, ...MARKET_KEYWORDS];
+const ALL_KEYWORDS = [...AI_KEYWORDS, ...AGENT_KEYWORDS, ...WEB3_KEYWORDS, ...MARKET_KEYWORDS];
 
 function classifyItem(item) {
   const text = `${item.title} ${item.description}`.toLowerCase();
   let aiScore = 0;
   let agentScore = 0;
+  let web3Score = 0;
   let marketScore = 0;
 
   for (const kw of AI_KEYWORDS) {
@@ -15,17 +16,22 @@ function classifyItem(item) {
   for (const kw of AGENT_KEYWORDS) {
     if (text.includes(kw)) agentScore += kw.includes(' ') ? 4 : 3;
   }
+  for (const kw of WEB3_KEYWORDS) {
+    if (text.includes(kw)) web3Score += kw.includes(' ') ? 3 : 2;
+  }
   for (const kw of MARKET_KEYWORDS) {
     if (text.includes(kw)) marketScore += kw.includes(' ') ? 2 : 1;
   }
 
-  const category =
-    agentScore > aiScore && agentScore > marketScore ? 'agents'
-    : aiScore >= marketScore ? 'ai'
-    : 'market';
+  if (item.category === 'learning') {
+    return { category: 'learning', aiScore, agentScore, web3Score, marketScore, totalScore: aiScore + agentScore + web3Score + marketScore + 3 };
+  }
 
-  const totalScore = aiScore + agentScore + marketScore;
-  return { category, aiScore, agentScore, marketScore, totalScore };
+  const scores = { ai: aiScore, agents: agentScore, web3: web3Score, market: marketScore };
+  const category = Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0];
+  const finalCategory = scores[category] > 0 ? category : (item.category || 'ai');
+
+  return { category: finalCategory, aiScore, agentScore, web3Score, marketScore, totalScore: aiScore + agentScore + web3Score + marketScore };
 }
 
 function computeRelevanceScore(item) {
@@ -36,7 +42,7 @@ function computeRelevanceScore(item) {
   return { ...scores, relevance };
 }
 
-function filterAndRankAIContent(items, { minScore = 2, limit = 40 } = {}) {
+function filterAndRankAIContent(items, { minScore = 1, limit = 50 } = {}) {
   const scored = items
     .map((item) => {
       const scores = computeRelevanceScore(item);
@@ -48,13 +54,14 @@ function filterAndRankAIContent(items, { minScore = 2, limit = 40 } = {}) {
 
   const filtered = scored.slice(0, limit);
 
-  const aiCount = filtered.filter((i) => i.category === 'ai').length;
-  const agentCount = filtered.filter((i) => i.category === 'agents').length;
-  const marketCount = filtered.filter((i) => i.category === 'market').length;
+  const counts = { ai: 0, agents: 0, web3: 0, market: 0, learning: 0 };
+  for (const item of filtered) {
+    counts[item.category] = (counts[item.category] || 0) + 1;
+  }
 
   logger.info(
     `Filtered ${items.length} → ${filtered.length} relevant items ` +
-    `(AI: ${aiCount}, Agents: ${agentCount}, Market: ${marketCount})`,
+    `(AI: ${counts.ai}, Agents: ${counts.agents}, Web3: ${counts.web3}, Market: ${counts.market}, Learning: ${counts.learning})`,
   );
 
   return filtered;
@@ -80,10 +87,13 @@ function extractTrendingTopics(items, topN = 5) {
 }
 
 function splitByCategory(items) {
-  const ai = items.filter((i) => i.category === 'ai');
-  const agents = items.filter((i) => i.category === 'agents');
-  const market = items.filter((i) => i.category === 'market');
-  return { ai, agents, market };
+  return {
+    ai: items.filter((i) => i.category === 'ai'),
+    agents: items.filter((i) => i.category === 'agents'),
+    web3: items.filter((i) => i.category === 'web3'),
+    market: items.filter((i) => i.category === 'market'),
+    learning: items.filter((i) => i.category === 'learning'),
+  };
 }
 
 module.exports = {

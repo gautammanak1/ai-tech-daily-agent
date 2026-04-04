@@ -1,28 +1,60 @@
 # AI Tech Daily Agent
 
-**Automated daily AI news digest** — fetches, filters, summarizes, and publishes a curated article every day.
+An autonomous agent that fetches AI, Web3, and tech news every day — summarizes it, generates images, writes a full newsletter, and publishes it to GitHub. Zero manual effort.
 
-No manual curation. No scraping. Just clean, structured AI journalism powered by RSS feeds, public APIs, and an LLM.
+[![Daily AI Article](https://github.com/gautammanak1/ai-tech-daily-agent/actions/workflows/daily.yml/badge.svg)](https://github.com/gautammanak1/ai-tech-daily-agent/actions/workflows/daily.yml)
+
+**Live output** → [github.com/gautammanak1/ai-tech-daily](https://github.com/gautammanak1/ai-tech-daily)
 
 ---
 
-## How It Works
+## What It Does
 
 ```
-RSS Feeds ─┐
-Reddit    ─┤─→ Fetch ─→ Deduplicate ─→ Filter AI ─→ Summarize ─→ Generate Article ─→ Commit
-HN API    ─┘
+RSS Feeds (12+) ─┐
+Hacker News API  ─┤─→ Fetch ─→ Deduplicate ─→ Filter & Rank ─→ Summarize (LLM)
+Dev.to Feeds     ─┤                                                  │
+CoinDesk         ─┘                                                  ▼
+                                                          Generate Images (AI)
+GitHub Trending ──────────────────────────────────────────────→ │
+                                                          Generate Article (LLM)
+                                                                │
+                                                    ┌───────────┴───────────┐
+                                                    ▼                       ▼
+                                            Private Repo              Public Repo
+                                         (articles/YYYY-MM-DD.md)  (article.md + README)
 ```
 
-1. **Fetch** — Pulls latest posts from Google News, TechCrunch, The Verge, Reddit, and Hacker News
-2. **Deduplicate** — Normalizes titles and merges duplicate stories across sources
-3. **Filter** — Scores each item against 50+ AI/ML keywords, drops irrelevant noise
-4. **Rank** — Weights items by source credibility and community engagement
-5. **Summarize** — LLM condenses each story into 1-2 punchy sentences
-6. **Generate** — LLM writes a full newsletter-style article with trends and analysis
-7. **Publish** — Commits the markdown file to `articles/` and pushes to GitHub
+Every day at **06:00 UTC**, the agent:
 
-Daily articles land in [`articles/`](./articles/) as `YYYY-MM-DD.md`.
+1. **Fetches** 250+ items from 12+ RSS feeds, Hacker News, Dev.to, and CoinDesk
+2. **Deduplicates** stories across sources using normalized title matching
+3. **Filters** using 150+ keywords across AI, AI Agents, Web3, and market categories
+4. **Ranks** by relevance score (keyword matches + source weight + community engagement)
+5. **Summarizes** each story using an LLM in batches of 8
+6. **Searches** GitHub for trending AI agent repos created in the last week
+7. **Generates images** for each section using ASI1 image generation API
+8. **Writes** a full newsletter with Deep Dive, Insights, and Builder's Perspective
+9. **Publishes** to both private archive and public repo with updated README
+
+---
+
+## Article Sections
+
+Each daily article includes:
+
+| Section | What's In It |
+|---------|-------------|
+| **AI News** | Top AI/ML developments with AI-generated section image |
+| **AI Agents & Agentic AI** | Agent frameworks, launches, tools, research |
+| **Web3 & Blockchain** | New products, protocol updates, DeFi (no price speculation) |
+| **Market & Industry** | Funding rounds, acquisitions, regulations |
+| **Trending AI Repos** | New GitHub repos from the past week with stars and descriptions |
+| **What to Learn Today** | Actionable items — tutorials, tools, repos to explore |
+| **Top Trends** | 3-5 patterns emerging across all categories |
+| **Deep Dive** | 3-4 paragraphs going deep on the most important story |
+| **Insights** | Analysis connecting dots across AI, Web3, and agents |
+| **Builder's Perspective** | Opinionated take with a specific call to action |
 
 ---
 
@@ -30,12 +62,16 @@ Daily articles land in [`articles/`](./articles/) as `YYYY-MM-DD.md`.
 
 | Source | Type | Content |
 |--------|------|---------|
-| Google News | RSS | AI-related headlines |
-| TechCrunch | RSS | AI industry coverage |
+| Google News (3 feeds) | RSS | AI, AI Agents, Tech Market |
+| TechCrunch (2 feeds) | RSS | AI + Startups |
 | The Verge | RSS | AI product news |
-| MIT Tech Review | RSS | Research & policy |
+| MIT Technology Review | RSS | Research & policy |
+| Ars Technica | RSS | Tech industry |
+| CoinDesk | RSS | Crypto & Web3 |
+| Dev.to (3 feeds) | RSS | AI, Web3, Tutorials |
 | Hacker News | API | Developer community picks |
-| Reddit | API | r/artificial, r/MachineLearning, r/LocalLLaMA |
+| GitHub Search | API | Trending AI agent repos |
+| ASI1 | API | AI-generated images |
 
 All sources are free, public, and legally accessible. No scraping of gated platforms.
 
@@ -48,55 +84,53 @@ git clone https://github.com/gautammanak1/ai-tech-daily-agent.git
 cd ai-tech-daily-agent
 npm install
 cp .env.example .env
-# Edit .env with your API keys
+```
+
+Edit `.env` with your API key:
+
+```env
+LLM_API_KEY=your_asi1_api_key_here
+```
+
+Run:
+
+```bash
 node src/main.js
 ```
 
-### Environment Variables
+Dry run (skip git commit):
+
+```bash
+DRY_RUN=true node src/main.js
+```
+
+---
+
+## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `LLM_API_KEY` | Yes | OpenAI (or compatible) API key |
-| `LLM_BASE_URL` | No | Custom endpoint (default: OpenAI) |
-| `LLM_MODEL` | No | Model name (default: `gpt-4o-mini`) |
-| `REDDIT_CLIENT_ID` | No | Reddit app client ID |
-| `REDDIT_SECRET` | No | Reddit app secret |
-| `DRY_RUN` | No | Set `true` to skip git commit |
-
-The agent works without Reddit credentials — it simply skips that source.
+| `LLM_API_KEY` | Yes | ASI1 API key (used for LLM + image generation) |
+| `LLM_BASE_URL` | No | API endpoint (default: `https://api.asi1.ai/v1`) |
+| `LLM_MODEL` | No | Model name (default: `asi1`) |
+| `GH_TOKEN` | No | GitHub PAT for pushing to public repo |
+| `DRY_RUN` | No | Set `true` to skip git operations |
 
 ---
 
-## Daily Automation
+## GitHub Actions Setup
 
-A GitHub Actions workflow runs every day at 06:00 UTC:
+The workflow runs automatically every day. To set up:
 
-```yaml
-on:
-  schedule:
-    - cron: '0 6 * * *'
-```
+1. Go to **Settings → Secrets and variables → Actions**
+2. Add these secrets:
 
-To set up:
+| Secret | Value |
+|--------|-------|
+| `LLM_API_KEY` | Your ASI1 API key |
+| `GH_PAT` | GitHub Personal Access Token (with `contents: write` on `ai-tech-daily` repo) |
 
-1. Fork this repo
-2. Go to **Settings → Secrets and variables → Actions**
-3. Add `LLM_API_KEY` (and optionally `REDDIT_CLIENT_ID`, `REDDIT_SECRET`)
-4. The workflow handles everything else — install, run, commit, push
-
-You can also trigger it manually from the **Actions** tab.
-
----
-
-## Article Format
-
-Each daily article includes:
-
-- **Opening Hook** — leads with the most interesting story
-- **Top Stories** — bullet-point summaries with source links
-- **Top 3 Trends** — patterns emerging from today's news
-- **Insights** — analysis of what the stories mean together
-- **Developer's Take** — opinionated perspective from a builder's POV
+3. Done. The workflow runs daily at 06:00 UTC, or trigger manually from the **Actions** tab.
 
 ---
 
@@ -104,34 +138,51 @@ Each daily article includes:
 
 ```
 src/
-├── agents/           Pipeline stages
-│   ├── fetchNews.js        Orchestrates all source fetchers
-│   ├── filterAI.js         Keyword scoring & ranking
-│   ├── summarize.js        LLM batch summarization
-│   └── generateArticle.js  LLM article generation
-├── services/         Data source adapters
-│   ├── rssService.js       RSS feed parser
-│   ├── redditService.js    Reddit OAuth + API
-│   └── hackernewsService.js  HN Firebase API
-├── utils/            Shared utilities
-│   ├── logger.js           Structured colored logging
-│   ├── fileWriter.js       Article file output
-│   └── dateFormatter.js    Date helpers
+├── agents/                  Pipeline stages
+│   ├── fetchNews.js              Orchestrates all source fetchers
+│   ├── filterAI.js               Multi-category keyword scoring & ranking
+│   ├── summarize.js              LLM batch summarization with fallback
+│   └── generateArticle.js        LLM article + image generation
+├── services/                Data source adapters
+│   ├── rssService.js             RSS feed parser (12+ feeds)
+│   ├── hackernewsService.js      HN Firebase API
+│   ├── githubService.js          GitHub trending repo search
+│   ├── imageService.js           ASI1 image generation + base64 save
+│   └── publishService.js         Public repo publisher (article + README + images)
+├── utils/                   Shared utilities
+│   ├── logger.js                 Structured colored logging
+│   ├── fileWriter.js             Article file output
+│   └── dateFormatter.js          Date helpers
 ├── config/
-│   └── sources.js    Feed URLs, keywords, weights
-└── main.js           Entry point & orchestrator
+│   └── sources.js            Feed URLs, 150+ keywords, weights, config
+└── main.js                   Entry point & orchestrator
 ```
 
 ---
 
 ## Fallback Behavior
 
-The agent is designed to always produce output:
+The agent always produces output, no matter what fails:
 
-- **No LLM key?** Falls back to extractive summaries and a template article
-- **Reddit credentials missing?** Skips Reddit, uses remaining sources
-- **A feed is down?** Logs a warning, continues with other sources
-- **Article already exists?** Skips regeneration for that date
+| Scenario | What Happens |
+|----------|-------------|
+| No LLM key | Falls back to extractive summaries + template article |
+| A feed is down | Logs warning, continues with other sources |
+| Image generation fails | Article generates without images |
+| GitHub search fails | Article generates without trending repos |
+| Article already exists | Skips regeneration for that date |
+
+---
+
+## Tech Stack
+
+- **Runtime**: Node.js 18+
+- **LLM**: ASI1 API (OpenAI-compatible)
+- **Image Generation**: ASI1 Image API
+- **RSS**: rss-parser
+- **HTTP**: axios
+- **Git**: simple-git
+- **CI/CD**: GitHub Actions
 
 ---
 

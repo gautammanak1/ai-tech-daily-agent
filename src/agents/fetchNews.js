@@ -1,6 +1,5 @@
-const { RSS_FEEDS, REDDIT_SUBREDDITS } = require('../config/sources');
+const { RSS_FEEDS } = require('../config/sources');
 const { fetchAllFeeds } = require('../services/rssService');
-const { fetchAllSubreddits } = require('../services/redditService');
 const { fetchTopStories } = require('../services/hackernewsService');
 const logger = require('../utils/logger').child('fetchNews');
 
@@ -39,15 +38,14 @@ function rankItem(item) {
 async function fetchAllNews() {
   logger.info('Starting news fetch from all sources...');
 
-  const [rssItems, redditItems, hnItems] = await Promise.allSettled([
+  const [rssItems, hnItems] = await Promise.allSettled([
     fetchAllFeeds(RSS_FEEDS),
-    fetchAllSubreddits(REDDIT_SUBREDDITS),
     fetchTopStories(),
   ]).then((results) =>
     results.map((r) => (r.status === 'fulfilled' ? r.value : [])),
   );
 
-  const allItems = [...rssItems, ...redditItems, ...hnItems];
+  const allItems = [...rssItems, ...hnItems];
   logger.info(`Raw items collected: ${allItems.length}`);
 
   const unique = deduplicateItems(allItems);

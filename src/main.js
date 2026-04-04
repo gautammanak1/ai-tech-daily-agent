@@ -6,6 +6,7 @@ const { summarizeItems } = require('./agents/summarize');
 const { generateArticle } = require('./agents/generateArticle');
 const { writeArticle, articleExists } = require('./utils/fileWriter');
 const { publishToPublicRepo } = require('./services/publishService');
+const { searchTrendingRepos } = require('./services/githubService');
 const { toISODate } = require('./utils/dateFormatter');
 const { ARTICLE_CONFIG } = require('./config/sources');
 const logger = require('./utils/logger').child('main');
@@ -27,6 +28,7 @@ async function commitAndPush(filePath, date) {
     await git.addConfig('user.name', userName, false, 'local');
     await git.addConfig('user.email', userEmail, false, 'local');
     await git.add(filePath);
+    await git.add('images/');
     await git.commit(`docs: add AI trends article for ${date}`);
     await git.push();
     logger.info('Changes committed and pushed');
@@ -70,11 +72,15 @@ async function run() {
   const trends = extractTrendingTopics(aiItems, ARTICLE_CONFIG.maxTopTrends);
   logger.info('Trending topics:', trends);
 
-  logger.info('Step 4/5: Summarizing news items...');
+  logger.info('Step 4/6: Summarizing news items...');
   const summarized = await summarizeItems(aiItems);
 
-  logger.info('Step 5/5: Generating article...');
-  const article = await generateArticle(summarized, trends);
+  logger.info('Step 5/6: Searching trending AI repos...');
+  const trendingRepos = await searchTrendingRepos();
+  logger.info(`Found ${trendingRepos.length} trending repos`);
+
+  logger.info('Step 6/6: Generating article...');
+  const article = await generateArticle(summarized, trends, new Date(), trendingRepos);
 
   const filePath = await writeArticle(filename, article, ARTICLE_CONFIG.outputDir);
   await commitAndPush(filePath, date);
