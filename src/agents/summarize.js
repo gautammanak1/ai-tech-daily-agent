@@ -9,7 +9,7 @@ function getLLMConfig() {
   };
 }
 
-async function callLLM(systemPrompt, userPrompt, { temperature = 0.7, maxTokens = 2048 } = {}) {
+async function callLLM(systemPrompt, userPrompt, { temperature = 0.7, maxTokens = 2048, retries = 3 } = {}) {
   const { apiKey, baseUrl, model } = getLLMConfig();
 
   if (!apiKey) {
@@ -17,32 +17,43 @@ async function callLLM(systemPrompt, userPrompt, { temperature = 0.7, maxTokens 
     return null;
   }
 
-  try {
-    const { data } = await axios.post(
-      `${baseUrl}/chat/completions`,
-      {
-        model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-        temperature,
-        max_tokens: maxTokens,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const { data } = await axios.post(
+        `${baseUrl}/chat/completions`,
+        {
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature,
+          max_tokens: maxTokens,
         },
-        timeout: 60_000,
-      },
-    );
+        {
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 90_000,
+        },
+      );
 
-    return data.choices?.[0]?.message?.content?.trim() || null;
-  } catch (err) {
-    logger.error(`LLM call failed: ${err.message}`);
-    return null;
+      return data.choices?.[0]?.message?.content?.trim() || null;
+    } catch (err) {
+      const status = err.response?.status;
+      logger.warn(`LLM call failed (attempt ${attempt}/${retries}): ${status || err.message}`);
+
+      if (attempt < retries && (!status || status >= 500)) {
+        const delay = attempt * 5000;
+        logger.info(`Retrying in ${delay / 1000}s...`);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
   }
+
+  logger.error('LLM call failed after all retries — using fallback');
+  return null;
 }
 
 function fallbackSummarize(item) {
