@@ -87,6 +87,7 @@ def run_agent():
         name="ai_tech_daily_agent",
         port=8030,
         seed=_load_seed(),
+        mailbox=True,
     )
 
     @agent.on_event("startup")

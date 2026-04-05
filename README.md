@@ -1,42 +1,78 @@
+<div align="center">
+
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![uAgents](https://img.shields.io/badge/uAgents-Fetch.ai-6C3CE1?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIiBmaWxsPSIjNkMzQ0UxIi8+PC9zdmc+&logoColor=white)
+![ASI1](https://img.shields.io/badge/LLM-ASI1_API-FF6B35?style=for-the-badge)
+![GitHub Actions](https://img.shields.io/github/actions/workflow/status/gautammanak1/ai-tech-daily-agent/daily.yml?style=for-the-badge&label=Daily%20Run&logo=github-actions)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![Articles](https://img.shields.io/badge/Companies-100+-blue?style=for-the-badge)
+
 # AI Tech Daily Agent
 
-A **uAgent** (Fetch.ai) that writes daily deep-dive articles about AI/tech companies with real-time web research.
+**An autonomous AI agent that researches and writes 800+ line deep-dive articles about tech companies — every single day.**
 
-Each day it **auto-picks a company**, does **real-time web search**, scrapes articles, finds images, and writes a **300+ line deep-dive**.
+[Live Articles](https://github.com/gautammanak1/ai-tech-daily) · [Report Bug](https://github.com/gautammanak1/ai-tech-daily-agent/issues) · [Request Company](https://github.com/gautammanak1/ai-tech-daily-agent/issues)
 
-## Live Output
-
-**[github.com/gautammanak1/ai-tech-daily](https://github.com/gautammanak1/ai-tech-daily)**
+</div>
 
 ---
 
-## Workflow
+## What Is This?
+
+An AI agent built with **Fetch.ai uAgents** that runs autonomously every day:
+
+1. **Picks** a company from a pool of 100 (auto-rotates, never repeats recently)
+2. **Searches** the web in real-time — news, articles, GitHub repos
+3. **Scrapes** top sources for raw content
+4. **Finds** company logos and tech images
+5. **Writes** a 300-800+ line deep-dive article with code snippets, stats, and source links
+6. **Publishes** to a public GitHub repo — each article as a separate file, old articles never deleted
+
+> No templates. No cached data. Every article is researched and written from scratch using live web data.
+
+---
+
+## Live Output
+
+[![Latest Article](https://img.shields.io/badge/📰_Read_Latest_Article-Click_Here-blue?style=for-the-badge)](https://github.com/gautammanak1/ai-tech-daily)
+
+---
+
+## How It Works
 
 ```mermaid
-graph TD
-    A[🚀 Agent Starts] --> B[🎯 Pick Company]
-    B --> C{Already covered<br/>recently?}
-    C -->|Yes| B
-    C -->|No| D[🔍 Real-Time Web Search]
-    D --> D1[DuckDuckGo News]
-    D --> D2[DuckDuckGo Web]
-    D --> D3[GitHub Search]
-    D1 --> E[📰 Scrape Articles]
-    D2 --> E
-    D3 --> E
-    E --> F[🖼️ Search Images]
-    F --> G[📊 Fetch Framework Repos]
-    G --> H[🤖 ASI1 LLM — Generate Article]
-    H --> I{300+ lines?}
-    I -->|Yes| J[📝 Save as company-date.md]
-    I -->|No| H
-    J --> K[📤 Push to Public Repo]
-    K --> L[📋 Update README Table]
-    L --> M[✅ Done]
+flowchart TD
+    START([Agent Starts]) --> PICK[Pick Company from 100]
+    PICK --> CHECK{Covered recently?}
+    CHECK -->|Yes| PICK
+    CHECK -->|No| SEARCH
 
-    style A fill:#1a1a2e,color:#fff
-    style H fill:#16213e,color:#fff
-    style M fill:#0f3460,color:#fff
+    subgraph Research [" Real-Time Research "]
+        SEARCH[Web Search] --> NEWS[DuckDuckGo News]
+        SEARCH --> WEB[DuckDuckGo Web]
+        SEARCH --> GH[GitHub Search]
+    end
+
+    NEWS --> SCRAPE[Scrape Top Articles]
+    WEB --> SCRAPE
+    GH --> SCRAPE
+
+    SCRAPE --> IMG[Find Company Images & Logos]
+    IMG --> REPOS[Fetch 19 Framework Repos — Stars, Versions]
+
+    REPOS --> LLM[ASI1 LLM Generates Deep-Dive]
+    LLM --> VALIDATE{300+ lines?}
+    VALIDATE -->|No| LLM
+    VALIDATE -->|Yes| SAVE[Save as company-date.md]
+
+    SAVE --> PUSH[Push to Public Repo]
+    PUSH --> README[Update README — List All Articles]
+    README --> DONE([Done])
+
+    style START fill:#6C3CE1,color:#fff,stroke:none
+    style DONE fill:#22c55e,color:#fff,stroke:none
+    style LLM fill:#FF6B35,color:#fff,stroke:none
+    style Research fill:#1e293b,color:#94a3b8,stroke:#334155
 ```
 
 ---
@@ -45,31 +81,67 @@ graph TD
 
 ```mermaid
 graph LR
-    subgraph Agent
-        A[agent.py] --> P[chat_proto.py]
+    subgraph Core ["Agent Core"]
+        A[agent.py] -->|Chat Protocol| P[chat_proto.py]
     end
 
-    subgraph Services
-        WS[web_search_service] --> |DuckDuckGo| Internet
-        SC[web_scraper_service] --> |Trafilatura| Internet
-        IS[image_search_service] --> |DuckDuckGo Images| Internet
-        CP[company_picker] --> |Rotate 100 companies| History
-        GH[github_service] --> |Track 19 repos| GitHub
-        LLM[llm_service] --> |ASI1 API| ASI1
-        ART[article_service] --> |Generate 300+ lines| Article
-        PUB[publish_service] --> |GitPython| PublicRepo
+    subgraph Data ["Data Collection"]
+        WS[web_search_service]
+        SC[web_scraper_service]
+        IS[image_search_service]
+        GH[github_service]
+    end
+
+    subgraph Intelligence ["AI Processing"]
+        CP[company_picker]
+        LLM[llm_service]
+        ART[article_service]
+    end
+
+    subgraph Output ["Publishing"]
+        PUB[publish_service]
     end
 
     A --> CP
-    A --> WS
-    A --> SC
-    A --> IS
-    A --> GH
-    A --> ART
-    A --> PUB
+    CP -->|Select company| WS
+    WS -->|DuckDuckGo| SC
+    SC -->|Trafilatura| IS
+    IS -->|Images| GH
+    GH -->|19 repos| LLM
+    LLM -->|ASI1 API| ART
+    ART -->|300+ lines| PUB
+    PUB -->|GitPython| REPO[(Public Repo)]
 
-    style Agent fill:#1a1a2e,color:#fff
-    style Services fill:#16213e,color:#fff
+    style Core fill:#6C3CE1,color:#fff,stroke:none
+    style Data fill:#1e293b,color:#e2e8f0,stroke:#334155
+    style Intelligence fill:#FF6B35,color:#fff,stroke:none
+    style Output fill:#22c55e,color:#fff,stroke:none
+```
+
+---
+
+## Project Structure
+
+```
+ai-tech-daily-agent/
+├── agent.py                        # uAgent entry point — chat mode or CLI
+├── protocols/
+│   └── chat_proto.py               # Fetch.ai chat protocol handler
+├── services/
+│   ├── company_picker.py           # Auto-rotate 100 companies
+│   ├── web_search_service.py       # Real-time DuckDuckGo search
+│   ├── web_scraper_service.py      # Trafilatura article scraping
+│   ├── image_search_service.py     # Logo + tech image search
+│   ├── github_service.py           # Track 19 framework repos
+│   ├── llm_service.py              # ASI1 LLM calls
+│   ├── article_service.py          # Deep-dive article generation
+│   └── publish_service.py          # Git push to public repo
+├── config/
+│   └── sources.py                  # Tracked framework repos list
+├── .github/workflows/
+│   └── daily.yml                   # GitHub Actions — runs daily at 6 AM UTC
+├── pyproject.toml                  # Dependencies (uv)
+└── .env.example                    # Environment variables template
 ```
 
 ---
@@ -77,83 +149,185 @@ graph LR
 ## Quick Start
 
 ```bash
+# Clone
 git clone https://github.com/gautammanak1/ai-tech-daily-agent.git
 cd ai-tech-daily-agent
 
+# Setup environment
 cp .env.example .env
-# Add your ASI_ONE_API_KEY and GH_TOKEN
+# Edit .env → add ASI_ONE_API_KEY and GH_TOKEN
 
+# Install
 pip install uv && uv sync
 
-# Chat agent mode
+# Run as chat agent (uAgent with Fetch.ai chat protocol)
 uv run python agent.py
 
-# CLI mode (one-shot)
+# Run as CLI — generate one article and exit
 uv run python agent.py --cli
 ```
 
 ---
 
-## 100 Companies (auto-rotates daily)
+## Article Format
 
-### Big Tech
-Google, Microsoft, Apple, Amazon, Meta, NVIDIA, Tesla, Samsung, Intel, AMD, Qualcomm, IBM, Oracle, Salesforce, Adobe
+Every generated article includes these sections:
 
-### Frontier AI Labs
-OpenAI, Anthropic, xAI, Mistral AI, Cohere, AI21 Labs, Inflection AI, Stability AI, Aleph Alpha, DeepSeek, Zhipu AI, Minimax
-
-### AI Agent Frameworks
-Fetch.ai, LangChain, CrewAI, Composio, Daytona, AutoGPT, Pydantic AI, Agno, Semantic Kernel, Haystack, LlamaIndex, Dify, Flowise, Rivet, SuperAGI, BabyAGI, Camel AI
-
-### AI Infrastructure
-Hugging Face, Databricks, Snowflake, Weights & Biases, Scale AI, Anyscale, Modal, Replicate, Together AI, Groq, Cerebras, CoreWeave, Lambda
-
-### AI Coding Tools
-Cursor, Replit, GitHub Copilot, Codeium, Tabnine, Sourcegraph, Vercel, Supabase
-
-### AI Search & Knowledge
-Perplexity, You.com, Brave Search, Tavily, Exa
-
-### AI Image & Video
-Midjourney, Runway, Pika, ElevenLabs, Luma AI, Leonardo AI
-
-### Robotics & Autonomous
-Boston Dynamics, Figure AI, Waymo, Cruise, 1X Technologies
-
-### Web3 & Crypto AI
-Ocean Protocol, SingularityNET, Bittensor, Render Network, Chainlink
-
-### AI Security & Safety
-Anthropic Safety, OpenAI Safety, Lakera, Protect AI
-
-### AI Data & Vector
-Pinecone, Weaviate, Qdrant, Chroma, Milvus
-
-### Protocols
-MCP Ecosystem, Google A2A
-
-### Emerging Startups
-Glean, Jasper AI, Writer, Adept AI, Harvey AI, Cognition (Devin)
+| Section | What's Covered |
+|---------|---------------|
+| **Company Overview** | Mission, products, founding, team, funding |
+| **Latest News** | Real-time news with source links |
+| **Product Deep Dive** | Architecture, features, how it works |
+| **GitHub & Open Source** | Repos, stars, recent activity, community |
+| **Code Examples** | 2-3 practical snippets (install → basic → advanced) |
+| **Market Position** | Competitors, strengths, weaknesses |
+| **Developer Impact** | Who should use this and why |
+| **What's Next** | Predictions, roadmap, upcoming features |
+| **Key Takeaways** | 5-7 numbered actionable points |
+| **Resources** | Official links, docs, GitHub, articles |
 
 ---
 
-## GitHub Actions
+## 100 Companies (auto-rotates daily)
 
-Add secrets: `ASI_ONE_API_KEY`, `GH_PAT` (classic, `repo` scope).
+<details>
+<summary><strong>Big Tech (15)</strong></summary>
 
-Runs daily at 6:00 AM UTC.
+Google · Microsoft · Apple · Amazon · Meta · NVIDIA · Tesla · Samsung · Intel · AMD · Qualcomm · IBM · Oracle · Salesforce · Adobe
+
+</details>
+
+<details>
+<summary><strong>Frontier AI Labs (12)</strong></summary>
+
+OpenAI · Anthropic · xAI · Mistral AI · Cohere · AI21 Labs · Inflection AI · Stability AI · Aleph Alpha · DeepSeek · Zhipu AI · Minimax
+
+</details>
+
+<details>
+<summary><strong>AI Agent Frameworks (17)</strong></summary>
+
+Fetch.ai · LangChain · CrewAI · Composio · Daytona · AutoGPT · Pydantic AI · Agno · Semantic Kernel · Haystack · LlamaIndex · Dify · Flowise · Rivet · SuperAGI · BabyAGI · Camel AI
+
+</details>
+
+<details>
+<summary><strong>AI Infrastructure (13)</strong></summary>
+
+Hugging Face · Databricks · Snowflake · Weights & Biases · Scale AI · Anyscale · Modal · Replicate · Together AI · Groq · Cerebras · CoreWeave · Lambda
+
+</details>
+
+<details>
+<summary><strong>AI Coding Tools (8)</strong></summary>
+
+Cursor · Replit · GitHub Copilot · Codeium · Tabnine · Sourcegraph · Vercel · Supabase
+
+</details>
+
+<details>
+<summary><strong>AI Search & Knowledge (5)</strong></summary>
+
+Perplexity · You.com · Brave Search · Tavily · Exa
+
+</details>
+
+<details>
+<summary><strong>AI Image, Video & Audio (6)</strong></summary>
+
+Midjourney · Runway · Pika · ElevenLabs · Luma AI · Leonardo AI
+
+</details>
+
+<details>
+<summary><strong>Robotics & Autonomous (5)</strong></summary>
+
+Boston Dynamics · Figure AI · Waymo · Cruise · 1X Technologies
+
+</details>
+
+<details>
+<summary><strong>Web3 & Crypto AI (5)</strong></summary>
+
+Ocean Protocol · SingularityNET · Bittensor · Render Network · Chainlink
+
+</details>
+
+<details>
+<summary><strong>AI Security & Safety (4)</strong></summary>
+
+Anthropic Safety · OpenAI Safety · Lakera · Protect AI
+
+</details>
+
+<details>
+<summary><strong>AI Data & Vector DBs (5)</strong></summary>
+
+Pinecone · Weaviate · Qdrant · Chroma · Milvus
+
+</details>
+
+<details>
+<summary><strong>Protocols (2)</strong></summary>
+
+MCP Ecosystem · Google A2A
+
+</details>
+
+<details>
+<summary><strong>Emerging Startups (6)</strong></summary>
+
+Glean · Jasper AI · Writer · Adept AI · Harvey AI · Cognition (Devin)
+
+</details>
+
+---
+
+## GitHub Actions Setup
+
+Add these **repository secrets** (`Settings → Secrets → Actions`):
+
+| Secret | Description |
+|--------|-------------|
+| `ASI_ONE_API_KEY` | Your ASI1 API key for LLM calls |
+| `GH_PAT` | GitHub Personal Access Token (classic) with `repo` scope |
+
+The workflow runs **daily at 6:00 AM UTC** and can be triggered manually via `workflow_dispatch`.
 
 ---
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|-----------|
-| Agent Framework | uAgents (Fetch.ai) + Chat Protocol |
-| Web Search | DuckDuckGo (ddgs) — no API key needed |
-| Article Scraping | Trafilatura |
-| Image Search | DuckDuckGo Images |
-| LLM | ASI1 API (asi1-mini) |
-| Git | GitPython |
-| CI/CD | GitHub Actions |
-| Language | Python 3.11 + uv |
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| **Agent** | [uAgents](https://github.com/fetchai/uAgents) (Fetch.ai) | Agent framework + chat protocol |
+| **Search** | [DuckDuckGo](https://github.com/deedy5/ddgs) | Real-time web search — no API key |
+| **Scraping** | [Trafilatura](https://github.com/adbar/trafilatura) | Article content extraction |
+| **Images** | DuckDuckGo Images + [Clearbit](https://clearbit.com/logo) | Company logos & tech images |
+| **LLM** | [ASI1 API](https://asi1.ai) (asi1-mini) | Article generation |
+| **Repos** | GitHub REST API | Track 19 framework repos |
+| **Git** | [GitPython](https://github.com/gitpython-developers/GitPython) | Commit & push to repos |
+| **CI/CD** | GitHub Actions | Daily scheduled runs |
+| **Runtime** | Python 3.11 + [uv](https://github.com/astral-sh/uv) | Fast dependency management |
+
+---
+
+## Contributing
+
+Want to add a company, improve article quality, or fix a bug?
+
+1. Fork the repo
+2. Create your branch (`git checkout -b feature/add-company`)
+3. Commit changes (`git commit -m 'feat: add new company'`)
+4. Push (`git push origin feature/add-company`)
+5. Open a Pull Request
+
+**Want access to this repo? Drop your GitHub username in the [issues](https://github.com/gautammanak1/ai-tech-daily-agent/issues).**
+
+---
+
+<div align="center">
+
+**Built with [Fetch.ai uAgents](https://fetch.ai) · Powered by [ASI1](https://asi1.ai)**
+
+</div>
