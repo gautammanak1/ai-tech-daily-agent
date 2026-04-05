@@ -1,213 +1,235 @@
-"""Generate daily article from summarized news items."""
+"""Generate a 300+ line deep-dive article about ONE company using real-time data + images."""
 
 import logging
 from datetime import datetime
 
-from services.llm_service import call_llm, generate_article_images
-from services.filter_service import split_by_category
+from services.llm_service import call_llm
 
 log = logging.getLogger("article")
 
 
-def _human_date(dt: datetime) -> str:
-    return dt.strftime("%A, %B %d, %Y")
+def generate_article(
+    company: dict,
+    search_data: dict,
+    scraped_content: str,
+    github_repos: list[dict],
+    images: dict[str, str],
+) -> tuple[str, str]:
+    """
+    Generate a deep-dive article about one company.
+    Returns (article_content, filename).
+    """
+    dt = datetime.utcnow()
+    date_str = dt.strftime("%Y-%m-%d")
+    human_date = dt.strftime("%A, %B %d, %Y")
+    name = company["name"]
+    slug = company["slug"]
+    topics = ", ".join(company["topics"])
 
-
-def _iso_date(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%d")
-
-
-def _bullet_list(items: list[dict], max_items: int = 7) -> str:
-    if not items:
-        return "- No stories in this category today"
-    return "\n".join(
-        f"- **{i['title']}** — {i.get('summary', i['title'])} ([source]({i['link']}))"
-        for i in items[:max_items]
-    )
-
-
-def _framework_table(frameworks: list[dict]) -> str:
-    if not frameworks:
-        return "No framework updates available."
-
-    lines = []
-    for f in frameworks:
-        release = f.get("latest_release")
-        rel_text = ""
-        if release and release.get("tag"):
-            rel_text = f" — latest: **{release['tag']}**"
-            if release.get("published_at"):
-                pub_date = release["published_at"][:10]
-                rel_text += f" ({pub_date})"
-
-        lines.append(
-            f"- **[{f['label']}]({f['url']})** ⭐ {f['stars']:,}"
-            + rel_text
-            + (f" `{f['language']}`" if f.get("language") else "")
-        )
-    return "\n".join(lines)
-
-
-def _trending_list(repos: list[dict]) -> str:
-    if not repos:
-        return "- No new repos found this week"
-    return "\n".join(
-        f"- **[{r['name']}]({r['url']})** ⭐ {r['stars']} — {r['description']}"
-        + (f" `{r['language']}`" if r.get("language") else "")
-        for r in repos
-    )
-
-
-def generate_article(items: list[dict], trends: list[dict], repos: dict, dt: datetime | None = None) -> str:
-    dt = dt or datetime.utcnow()
-    date_str = _iso_date(dt)
-    human = _human_date(dt)
-    cats = split_by_category(items)
-
-    frameworks = repos.get("frameworks", []) if isinstance(repos, dict) else []
-    trending = repos.get("trending", []) if isinstance(repos, dict) else repos
-
-    log.info("Generating article images...")
-    images = generate_article_images(trends, date_str)
-
-    def fmt(section_items: list[dict]) -> str:
-        return "\n".join(f"{i + 1}. {it['title']} — {it.get('summary', '')} ({it['source']})" for i, it in enumerate(section_items))
-
-    trend_list = ", ".join(f"{t['topic']} ({t['count']} mentions)" for t in trends) or "General tech developments"
-
-    framework_text = ""
-    for f in frameworks[:12]:
-        release = f.get("latest_release")
-        rel = f" [latest release: {release['tag']}]" if release and release.get("tag") else ""
-        framework_text += f"- {f['label']} (⭐{f['stars']:,}){rel} — {f['description'][:100]} [{f['url']}]\n"
-    framework_text = framework_text or "No framework data."
-
-    trending_text = ""
-    for r in trending[:8]:
-        trending_text += f"- {r['name']} (⭐{r['stars']}) — {r['description']} [{r['url']}]\n"
-    trending_text = trending_text or "No trending repos."
+    news_text = _format_news(search_data.get("news", []))
+    web_text = _format_web(search_data.get("web", []))
+    github_text = _format_github(search_data.get("github", []))
+    repo_text = _format_tracked_repos(github_repos)
 
     img_instructions = ""
     if images:
-        img_instructions = "\nINCLUDE THESE IMAGES (markdown syntax):\n"
-        img_instructions += "\n".join(f"- {k}: ![{k}]({v})" for k, v in images.items())
-        img_instructions += "\nPlace banner at top, others after section headings."
+        img_instructions = "\nINCLUDE THESE IMAGES in the article using markdown image syntax:\n"
+        for key, url in images.items():
+            if key == "logo":
+                img_instructions += f'- Company logo (place after title): ![{name} Logo]({url})\n'
+            elif key == "hero":
+                img_instructions += f'- Hero image (place after TL;DR): ![{name}]({url})\n'
+            elif key == "banner":
+                img_instructions += f'- Section image (place before Product Deep Dive): ![{name} Technology]({url})\n'
+        img_instructions += "\nPlace images naturally between sections. Do NOT cluster them."
 
-    system = """You are a developer writing a daily newsletter called "AI & Tech Daily".
-Beats: AI/ML, AI Agent Frameworks, A2A, MCP, uAgents, Fetch.ai, CrewAI, LangChain, Composio, Daytona, Web3/Blockchain, Tech Market, Developer Learning.
+    system = f"""You are a senior tech journalist and developer advocate writing an in-depth daily article for "AI & Tech Daily".
 
-Voice: technical but accessible, opinionated, no hype, include code snippets where relevant.
+TODAY'S FOCUS: {name}
 
-Sections (exact markdown, include ALL sections):
-1. Banner image (if provided) + title "AI & Tech Daily — {date}" + opening hook (2-3 sentences)
-2. ## AI News — bullets with bold titles, summaries, [source] links
-3. ## AI Agents & Frameworks — CRITICAL section. Cover: uAgents (Fetch.ai), CrewAI, LangChain/LangGraph, AutoGen, Composio, Daytona, A2A protocol, MCP, OpenAI Agents SDK, Pydantic AI. Include latest version numbers, framework comparisons, and code examples.
-4. ## Framework Spotlight — pick 2-3 frameworks from the data, explain what's new, show a quick code snippet
-5. ## Web3 & Blockchain — products/protocols, NOT prices
-6. ## Market & Industry
-7. ## Trending AI Repos This Week — new repos with stars and links
-8. ## What to Learn Today — 3-4 actionable items with framework tutorials
-9. ## Top Trends — 3-5 patterns
-10. ## Deep Dive — 3-4 paragraphs on the most important story
-11. ## Builder's Perspective — opinionated, mention specific frameworks, end with call to action
-12. Footer with date"""
+Write a COMPREHENSIVE deep-dive about {name} — covering everything happening RIGHT NOW.
 
-    user = f"""Write newsletter for {human}.
+RULES:
+- Article MUST be 300+ lines of markdown
+- ALL content must be based on the real-time search data provided — do NOT invent facts
+- Include specific numbers: star counts, funding, users, version numbers
+- Include 2-3 code snippets showing how to use their tools/products
+- Include links to sources: [text](url)
+- Include images where provided (logo, hero, tech images)
+- Be opinionated — give your take on what this means for developers
+- Every section must have real, substantial content
+
+REQUIRED SECTIONS (## headings, ALL mandatory):
+
+# {name} — Deep Dive | {human_date}
+
+## Company Overview
+What they do, mission, key products, founding story, team size, funding.
+
+## Latest News & Announcements
+Everything from the search results. Each item as a bullet with bold title, summary, and [source](url).
+
+## Product & Technology Deep Dive
+Detailed look at their main products/platforms. Architecture, features, how it works.
+
+## GitHub & Open Source
+Their repos, stars, recent activity, community engagement. Include repo links.
+
+## Getting Started — Code Examples
+2-3 practical code snippets. Installation, basic usage, advanced example. Use ```python or ```typescript blocks.
+
+## Market Position & Competition
+How they compare to competitors. Market share, pricing, strengths/weaknesses table.
+
+## Developer Impact
+What this means for builders. Who should use this and why.
+
+## What's Next
+Predictions, upcoming features, roadmap hints from the news.
+
+## Key Takeaways
+5-7 numbered actionable points.
+
+## Resources & Links
+Useful links organized by category (Official, GitHub, Documentation, Articles).
+
+---
+*Generated on {date_str} by [AI Tech Daily Agent](https://github.com/gautammanak1/ai-tech-daily-agent)*"""
+
+    user = f"""Write a deep-dive article about {name} for {human_date}.
+
+Company topics: {topics}
 {img_instructions}
 
-=== AI NEWS ===
-{fmt(cats.get('ai', [])[:8]) or 'None.'}
+=== REAL-TIME NEWS (searched today) ===
+{news_text}
 
-=== AI AGENTS & FRAMEWORK NEWS ===
-{fmt(cats.get('agents', [])[:8]) or 'None.'}
+=== WEB SEARCH RESULTS ===
+{web_text}
 
-=== TRACKED FRAMEWORK REPOS (include version info!) ===
-{framework_text}
+=== GITHUB SEARCH ===
+{github_text}
 
-=== WEB3 ===
-{fmt(cats.get('web3', [])[:6]) or 'None.'}
+=== TRACKED REPOS DATA ===
+{repo_text}
 
-=== MARKET ===
-{fmt(cats.get('market', [])[:5]) or 'None.'}
+=== SCRAPED ARTICLE CONTENT (from top sources) ===
+{scraped_content[:8000]}
 
-=== LEARNING ===
-{fmt(cats.get('learning', [])[:5]) or 'None.'}
+IMPORTANT: Write FULL article. 300+ lines minimum. Use ONLY data from above. Include images where instructed. Include code snippets."""
 
-=== NEW TRENDING REPOS (this week) ===
-{trending_text}
-
-Trends: {trend_list}
-
-IMPORTANT: The "AI Agents & Frameworks" and "Framework Spotlight" sections MUST reference specific frameworks from the tracked repos data above — uAgents, CrewAI, LangChain, A2A, MCP, Composio, Daytona, etc. Include their star counts and latest versions.
-
-Write FULL article in markdown. Include code snippets. End with generation date."""
-
-    result = call_llm(system, user, temperature=0.8, max_tokens=5000)
+    result = call_llm(system, user, temperature=0.7, max_tokens=8000)
 
     if result:
         if "AI Tech Daily Agent" not in result:
-            result += f"\n\n---\n\n*Generated on {date_str} by [AI Tech Daily Agent](https://github.com/gautammanak1/ai-tech-daily-agent)*\n"
-        log.info("Article generated via LLM")
-        return result
+            result += f"\n\n---\n\n*Generated on {date_str} by [AI Tech Daily Agent](https://github.com/gautammanak1/ai-tech-daily-agent) — Deep dive on {name}*\n"
+        log.info(f"Article generated: {len(result.splitlines())} lines")
+    else:
+        result = _fallback_article(company, search_data, github_repos, images, human_date, date_str)
+        log.info("Used fallback template")
 
-    log.info("Using fallback template")
-    return _fallback_article(cats, trends, frameworks, trending, images, human, date_str)
+    filename = f"{slug}-{date_str}.md"
+    return result, filename
 
 
-def _fallback_article(cats, trends, frameworks, trending, images, human, date_str):
-    img = lambda k, alt: f"\n![{alt}]({images[k]})\n" if k in images else ""
-    trend_text = "\n".join(f"- **{t['topic'].title()}** — mentioned {t['count']} times" for t in trends) or "- General developments"
+def _format_news(news: list[dict]) -> str:
+    if not news:
+        return "No recent news found."
+    lines = []
+    for n in news[:15]:
+        lines.append(f"- [{n['title']}]({n['url']})")
+        if n.get("body"):
+            lines.append(f"  {n['body'][:300]}")
+        if n.get("date"):
+            lines.append(f"  Date: {n['date']}")
+        lines.append("")
+    return "\n".join(lines)
 
-    return f"""{img('banner', 'AI & Tech Daily')}
-# AI & Tech Daily — {human}
 
-> Daily briefing on AI, AI Agent Frameworks, Web3, and tech — from a builder's perspective.
+def _format_web(web: list[dict]) -> str:
+    if not web:
+        return "No web results."
+    return "\n".join(
+        f"- [{w['title']}]({w['url']})\n  {w.get('body', '')[:200]}"
+        for w in web[:10]
+    )
+
+
+def _format_github(github: list[dict]) -> str:
+    if not github:
+        return "No GitHub results."
+    return "\n".join(
+        f"- [{g['title']}]({g['url']})\n  {g.get('body', '')[:200]}"
+        for g in github[:8]
+    )
+
+
+def _format_tracked_repos(repos: list[dict]) -> str:
+    if not repos:
+        return "No tracked repos."
+    lines = []
+    for r in repos:
+        release = r.get("latest_release")
+        rel = f" — latest: {release['tag']}" if release and release.get("tag") else ""
+        lines.append(f"- {r['label']} (⭐{r['stars']:,}){rel} — {r['description'][:150]} [{r['url']}]")
+    return "\n".join(lines)
+
+
+def _fallback_article(company, search_data, repos, images, human_date, date_str):
+    name = company["name"]
+    topics = ", ".join(company["topics"])
+
+    logo_img = f"\n![{name} Logo]({images['logo']})\n" if "logo" in images else ""
+    hero_img = f"\n![{name}]({images['hero']})\n" if "hero" in images else ""
+
+    news_bullets = "\n".join(
+        f"- **{n['title']}** — {n.get('body', '')[:200]} [source]({n['url']})"
+        for n in search_data.get("news", [])[:10]
+    ) or "- No news available"
+
+    web_bullets = "\n".join(
+        f"- [{w['title']}]({w['url']})"
+        for w in search_data.get("web", [])[:8]
+    ) or "- No web results"
+
+    repo_bullets = "\n".join(
+        f"- **[{r['label']}]({r['url']})** ⭐ {r['stars']:,}"
+        for r in repos[:10]
+    ) or "- No repos tracked"
+
+    return f"""# {name} — Deep Dive | {human_date}
+{logo_img}
+> Daily deep dive into {name} — covering {topics}.
 
 ---
 
-## AI News
-{img('ai', 'AI News')}
-{_bullet_list(cats.get('ai', []))}
+{hero_img}
+
+## Latest News & Announcements
+
+{news_bullets}
 
 ---
 
-## AI Agents & Frameworks
-{img('agents', 'AI Agents')}
-{_bullet_list(cats.get('agents', []), 8)}
+## Web Resources
+
+{web_bullets}
 
 ---
 
-## Framework Spotlight
+## GitHub & Open Source
 
-### Tracked Frameworks
-
-{_framework_table(frameworks)}
+{repo_bullets}
 
 ---
 
-## Web3 & Blockchain
-{img('web3', 'Web3')}
-{_bullet_list(cats.get('web3', []), 5)}
+## Key Takeaways
+
+1. {name} continues to evolve in the AI/tech landscape
+2. Monitor their open-source projects for updates
+3. Check official channels for latest announcements
 
 ---
 
-## Market & Industry
-
-{_bullet_list(cats.get('market', []), 4)}
-
----
-
-## Trending AI Repos This Week
-
-{_trending_list(trending)}
-
----
-
-## Trending Topics
-
-{trend_text}
-
----
-
-*Generated on {date_str} by [AI Tech Daily Agent](https://github.com/gautammanak1/ai-tech-daily-agent)*
+*Generated on {date_str} by [AI Tech Daily Agent](https://github.com/gautammanak1/ai-tech-daily-agent) — Deep dive on {name}*
 """

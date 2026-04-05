@@ -1,10 +1,9 @@
-"""Publish article to public GitHub repo without overwriting old content."""
+"""Publish article to public GitHub repo. Each article is a separate file. Never delete old ones."""
 
 import logging
 import os
 import shutil
 import tempfile
-from datetime import datetime
 from pathlib import Path
 
 log = logging.getLogger("publish")
@@ -12,56 +11,13 @@ log = logging.getLogger("publish")
 PUBLIC_REPO = "https://github.com/gautammanak1/ai-tech-daily.git"
 
 
-def _get_available_filename(date_str: str, output_dir: str) -> str:
-    out = Path(output_dir)
-    out.mkdir(parents=True, exist_ok=True)
-
-    base = f"{date_str}.md"
-    if not (out / base).exists():
-        return base
-
-    for i in range(2, 50):
-        name = f"{date_str}-{i}.md"
-        if not (out / name).exists():
-            log.info(f"{base} exists — using {name}")
-            return name
-    return base
-
-
-def save_article(content: str, date_str: str, output_dir: str = "articles") -> tuple[str, str]:
-    filename = _get_available_filename(date_str, output_dir)
-    filepath = Path(output_dir) / filename
-    filepath.write_text(content, encoding="utf-8")
-    log.info(f"Article saved: {filepath}")
-    return filename, str(filepath)
-
-
-def commit_and_push(filepath: str, date_str: str, dry_run: bool = False):
+def publish_article(article_content: str, filename: str, company_name: str, date_str: str, dry_run: bool = False):
+    """Publish article as a new file in the public repo."""
     if dry_run:
-        log.info("DRY_RUN — skipping git commit")
+        log.info(f"DRY_RUN — would publish {filename}")
         return
 
-    try:
-        from git import Repo
-        repo = Repo(".")
-        repo.config_writer().set_value("user", "name", os.getenv("GIT_USER_NAME", "gautammanak1")).release()
-        repo.config_writer().set_value("user", "email", os.getenv("GIT_USER_EMAIL", "gautammanak1@gmail.com")).release()
-
-        repo.git.add(filepath)
-        repo.git.add("images/")
-        repo.index.commit(f"docs: add AI trends article for {date_str}")
-        repo.git.pull("origin", "main", rebase="true")
-        repo.remotes.origin.push()
-        log.info("Committed and pushed to private repo")
-    except Exception as e:
-        log.error(f"Git push failed: {e}")
-
-
-def publish_to_public_repo(article_content: str, date_str: str):
-    token = os.getenv("GH_TOKEN", "").strip()
-    if not token:
-        token = os.getenv("GITHUB_TOKEN", "").strip()
-
+    token = os.getenv("GH_TOKEN", "").strip() or os.getenv("GITHUB_TOKEN", "").strip()
     clone_url = PUBLIC_REPO
     if token:
         clone_url = PUBLIC_REPO.replace("https://", f"https://x-access-token:{token}@")
@@ -70,28 +26,34 @@ def publish_to_public_repo(article_content: str, date_str: str):
 
     try:
         from git import Repo
-        log.info(f"Cloning public repo...")
-        repo = Repo.clone_from(clone_url, tmp_dir, depth=1)
+        log.info("Cloning public repo...")
+        repo = Repo.clone_from(clone_url, tmp_dir)
         repo.config_writer().set_value("user", "name", os.getenv("GIT_USER_NAME", "gautammanak1")).release()
         repo.config_writer().set_value("user", "email", os.getenv("GIT_USER_EMAIL", "gautammanak1@gmail.com")).release()
 
-        (Path(tmp_dir) / "article.md").write_text(article_content, encoding="utf-8")
+        articles_dir = Path(tmp_dir) / "articles"
+        articles_dir.mkdir(exist_ok=True)
 
-        _update_readme(tmp_dir, date_str)
+        target = articles_dir / filename
+        if target.exists():
+            stem = filename.replace(".md", "")
+            for i in range(2, 50):
+                alt = f"{stem}-{i}.md"
+                if not (articles_dir / alt).exists():
+                    filename = alt
+                    target = articles_dir / alt
+                    break
 
-        images_src = Path("images")
-        if images_src.exists():
-            images_dst = Path(tmp_dir) / "images"
-            if images_dst.exists():
-                shutil.rmtree(images_dst)
-            shutil.copytree(images_src, images_dst)
-            log.info("Images copied to public repo")
+        target.write_text(article_content, encoding="utf-8")
+        log.info(f"Article written: articles/{filename}")
+
+        _update_readme(tmp_dir, filename, company_name, date_str)
 
         repo.git.add("-A")
         if repo.is_dirty() or repo.untracked_files:
-            repo.index.commit(f"docs: update AI trends — {date_str}")
+            repo.index.commit(f"docs: {company_name} deep dive — {date_str}")
             repo.remotes.origin.push()
-            log.info("Published to public repo")
+            log.info(f"Published articles/{filename}")
         else:
             log.info("No changes to publish")
     except Exception as e:
@@ -100,37 +62,66 @@ def publish_to_public_repo(article_content: str, date_str: str):
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def _update_readme(repo_dir: str, date_str: str):
+def _update_readme(repo_dir: str, new_filename: str, company_name: str, date_str: str):
+    """Update README to list ALL articles. Never remove old entries."""
     readme_path = Path(repo_dir) / "README.md"
+    articles_dir = Path(repo_dir) / "articles"
+
+    all_articles = sorted(articles_dir.glob("*.md"), reverse=True)
+
+    rows = []
+    for f in all_articles:
+        name_parts = f.stem.rsplit("-", 3)
+        if len(name_parts) >= 4:
+            topic = "-".join(name_parts[:-3])
+            date = "-".join(name_parts[-3:])
+        else:
+            topic = f.stem
+            date = ""
+        rows.append(f"| [{f.name}](./articles/{f.name}) | {topic} | {date} |")
+
+    article_table = "\n".join(rows) if rows else "| — | — | — |"
 
     readme = f"""# AI & Tech Daily
 
-> Automated daily digest of AI, AI Agents, Web3, and tech news — generated by an AI agent, for developers.
+> Daily deep-dive articles on AI companies, agent frameworks, and tech — written by an autonomous AI agent.
+
+Each day, the agent **picks a different company** (Google, Microsoft, OpenAI, Anthropic, Fetch.ai, LangChain, CrewAI, Composio, Daytona, and more), does **real-time web research**, and writes a **300+ line deep-dive** article.
 
 ---
 
 ## Latest Article
 
-**Date:** {date_str}
-
-Read the full article: **[article.md](./article.md)**
+**[{new_filename}](./articles/{new_filename})** — {company_name} ({date_str})
 
 ---
 
-## About
+## All Articles
 
-This repository is updated daily by the [AI Tech Daily Agent](https://github.com/gautammanak1/ai-tech-daily-agent). Every morning, the agent:
-
-1. Fetches news from 12+ sources (RSS, Hacker News, Dev.to, CoinDesk)
-2. Filters and ranks AI/Web3/Agent-related content
-3. Summarizes using an LLM
-4. Generates a full newsletter with images
-5. Publishes here automatically
+| Article | Company | Date |
+|---------|---------|------|
+{article_table}
 
 ---
 
-## Support
+## How It Works
 
-If this project is useful, consider sponsoring: **[github.com/sponsors/gautammanak1](https://github.com/sponsors/gautammanak1)**
+1. Agent auto-picks a company (rotates daily, never repeats recently)
+2. Real-time web search via DuckDuckGo (news + web + GitHub)
+3. Scrapes top articles for detailed content
+4. Tracks 19 agent framework repos (stars, versions, releases)
+5. Generates 300+ line deep-dive using ASI1 LLM
+6. Publishes here as a separate `.md` file
+
+---
+
+## Companies Covered
+
+Google, Microsoft, OpenAI, Anthropic, Meta, NVIDIA, Fetch.ai, LangChain, CrewAI, Composio, Daytona, Hugging Face, Apple, Amazon, Mistral AI, Cohere, Stability AI, xAI, Vercel, Pydantic AI, AutoGPT, Perplexity, Databricks, Tesla, Cursor, Replit
+
+---
+
+*Powered by [AI Tech Daily Agent](https://github.com/gautammanak1/ai-tech-daily-agent)*
 """
     readme_path.write_text(readme, encoding="utf-8")
+    log.info(f"README updated — {len(all_articles)} articles listed")

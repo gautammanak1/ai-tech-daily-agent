@@ -2,7 +2,8 @@
 """
 AI Tech Daily Agent
 
-A uAgent that generates daily AI/Web3/tech news articles.
+A uAgent that generates daily deep-dive articles about AI/tech companies.
+Each day picks a different company, does real-time web research, and writes a 300+ line article.
 Supports chat protocol for on-demand generation and CLI mode for scheduled runs.
 """
 
@@ -14,7 +15,7 @@ import sys
 import dotenv
 from uagents import Agent, Context
 
-from protocols.chat_proto import daily_chat_proto, _run_pipeline
+from protocols.chat_proto import daily_chat_proto
 
 dotenv.load_dotenv()
 
@@ -33,48 +34,51 @@ def _load_seed() -> str:
     return "ai-tech-daily-agent-default-seed-change-me"
 
 
-async def run_cli_pipeline():
-    """Run the full pipeline once (for GitHub Actions / CLI)."""
-    from services.news_service import fetch_all_news
-    from services.filter_service import filter_and_rank, extract_trends
-    from services.llm_service import summarize_items
-    from services.github_service import get_all_repos
-    from services.article_service import generate_article
-    from services.publish_service import save_article, commit_and_push, publish_to_public_repo
+def run_pipeline(dry_run: bool = False) -> str:
+    """Run the full pipeline once. Returns summary string."""
     from datetime import datetime
+    from services.company_picker import pick_company
+    from services.web_search_service import search_all
+    from services.web_scraper_service import extract_key_content
+    from services.image_search_service import get_best_images
+    from services.github_service import get_framework_updates
+    from services.article_service import generate_article
+    from services.publish_service import publish_article
 
-    log.info("=== AI Tech Daily Agent — CLI Mode ===")
+    log.info("=== AI Tech Daily Agent ===")
 
-    raw = fetch_all_news()
-    log.info(f"Fetched {len(raw)} items")
+    company = pick_company()
+    log.info(f"Today's company: {company['name']}")
 
-    ranked = filter_and_rank(raw)
-    log.info(f"Filtered to {len(ranked)} items")
+    log.info("Searching the web (real-time)...")
+    search_data = search_all(company["name"])
 
-    if not ranked:
-        log.warning("No relevant items found. Using top raw items.")
-        ranked = raw[:20]
+    log.info("Scraping top articles...")
+    scraped = extract_key_content(search_data)
 
-    summarized = summarize_items(ranked)
-    trends = extract_trends(ranked)
-    repos = get_all_repos()
+    log.info("Searching for images...")
+    images = get_best_images(company["name"], company["slug"])
 
-    dt = datetime.utcnow()
-    date_str = dt.strftime("%Y-%m-%d")
+    log.info("Fetching framework repo data...")
+    frameworks = get_framework_updates()
 
-    article = generate_article(summarized, trends, repos, dt)
+    log.info("Generating article...")
+    article, filename = generate_article(company, search_data, scraped, frameworks, images)
 
-    filename, filepath = save_article(article, date_str)
-    log.info(f"Article saved: {filename}")
+    line_count = len(article.splitlines())
+    log.info(f"Article: {filename} ({line_count} lines)")
 
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    publish_article(article, filename, company["name"], date_str, dry_run=dry_run)
+
+    return f"**{company['name']}** — {filename} ({line_count} lines)"
+
+
+async def run_cli_pipeline():
+    """CLI entry point."""
     dry_run = os.getenv("DRY_RUN", "false").lower() == "true"
-    if not dry_run:
-        commit_and_push(filepath, date_str, dry_run=False)
-        publish_to_public_repo(article, date_str)
-    else:
-        log.info("DRY_RUN mode — skipping git operations")
-
-    log.info(f"Done — {filename}")
+    result = run_pipeline(dry_run=dry_run)
+    log.info(f"Done — {result}")
 
 
 def run_agent():

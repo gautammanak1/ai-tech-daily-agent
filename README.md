@@ -1,45 +1,75 @@
 # AI Tech Daily Agent
 
-A **uAgent** (Fetch.ai) that autonomously generates daily AI/Web3/tech news articles.
+A **uAgent** (Fetch.ai) that writes daily deep-dive articles about AI/tech companies with real-time web research.
 
-Built with [uAgents](https://github.com/fetchai/uAgents) + chat protocol — can run as a **chat agent** or via **CLI/cron**.
-
----
-
-## What It Does
-
-1. Fetches news from **12+ sources** (RSS, Hacker News, Dev.to, CoinDesk)
-2. Filters and ranks by AI / AI Agents / Web3 / Market relevance
-3. Summarizes using ASI1 LLM
-4. Generates images per article via ASI1 Image API
-5. Writes a full newsletter with Deep Dive, Trending Repos, Builder's Perspective
-6. Saves locally with unique filenames (`YYYY-MM-DD.md`, `YYYY-MM-DD-2.md`, ...)
-7. Pushes to public repo without overwriting previous content
+Each day it **auto-picks a company**, does **real-time web search**, scrapes articles, finds images, and writes a **300+ line deep-dive**.
 
 ## Live Output
 
-Latest article: [github.com/gautammanak1/ai-tech-daily](https://github.com/gautammanak1/ai-tech-daily)
+**[github.com/gautammanak1/ai-tech-daily](https://github.com/gautammanak1/ai-tech-daily)**
+
+---
+
+## Workflow
+
+```mermaid
+graph TD
+    A[🚀 Agent Starts] --> B[🎯 Pick Company]
+    B --> C{Already covered<br/>recently?}
+    C -->|Yes| B
+    C -->|No| D[🔍 Real-Time Web Search]
+    D --> D1[DuckDuckGo News]
+    D --> D2[DuckDuckGo Web]
+    D --> D3[GitHub Search]
+    D1 --> E[📰 Scrape Articles]
+    D2 --> E
+    D3 --> E
+    E --> F[🖼️ Search Images]
+    F --> G[📊 Fetch Framework Repos]
+    G --> H[🤖 ASI1 LLM — Generate Article]
+    H --> I{300+ lines?}
+    I -->|Yes| J[📝 Save as company-date.md]
+    I -->|No| H
+    J --> K[📤 Push to Public Repo]
+    K --> L[📋 Update README Table]
+    L --> M[✅ Done]
+
+    style A fill:#1a1a2e,color:#fff
+    style H fill:#16213e,color:#fff
+    style M fill:#0f3460,color:#fff
+```
 
 ---
 
 ## Architecture
 
-```
-agent.py              ← uAgent entry point (chat mode or CLI mode)
-├── protocols/
-│   └── chat_proto.py ← Chat protocol handler
-├── services/
-│   ├── news_service.py      ← RSS + Hacker News fetching
-│   ├── filter_service.py    ← Keyword scoring, categorization
-│   ├── llm_service.py       ← ASI1 LLM + image generation
-│   ├── github_service.py    ← Trending repo search
-│   ├── article_service.py   ← Newsletter generation
-│   └── publish_service.py   ← Git commit + public repo push
-├── config/
-│   └── sources.py           ← RSS feeds, keywords, settings
-├── articles/                ← Generated articles (kept forever)
-├── images/                  ← Generated images (per article)
-└── tests/
+```mermaid
+graph LR
+    subgraph Agent
+        A[agent.py] --> P[chat_proto.py]
+    end
+
+    subgraph Services
+        WS[web_search_service] --> |DuckDuckGo| Internet
+        SC[web_scraper_service] --> |Trafilatura| Internet
+        IS[image_search_service] --> |DuckDuckGo Images| Internet
+        CP[company_picker] --> |Rotate 100 companies| History
+        GH[github_service] --> |Track 19 repos| GitHub
+        LLM[llm_service] --> |ASI1 API| ASI1
+        ART[article_service] --> |Generate 300+ lines| Article
+        PUB[publish_service] --> |GitPython| PublicRepo
+    end
+
+    A --> CP
+    A --> WS
+    A --> SC
+    A --> IS
+    A --> GH
+    A --> ART
+    A --> PUB
+
+    style Agent fill:#1a1a2e,color:#fff
+    style Services fill:#16213e,color:#fff
 ```
 
 ---
@@ -47,77 +77,83 @@ agent.py              ← uAgent entry point (chat mode or CLI mode)
 ## Quick Start
 
 ```bash
-# Clone
 git clone https://github.com/gautammanak1/ai-tech-daily-agent.git
 cd ai-tech-daily-agent
 
-# Setup
 cp .env.example .env
-# Edit .env with your API keys
+# Add your ASI_ONE_API_KEY and GH_TOKEN
 
-# Install
-pip install uv
-uv sync
+pip install uv && uv sync
 
-# Run as chat agent
+# Chat agent mode
 uv run python agent.py
 
-# Run as CLI (one-shot)
+# CLI mode (one-shot)
 uv run python agent.py --cli
 ```
 
 ---
 
-## Modes
+## 100 Companies (auto-rotates daily)
 
-### Chat Agent Mode (default)
-```bash
-uv run python agent.py
-```
-Runs as a uAgent with chat protocol. Send **"generate"** via Agentverse to create an article.
+### Big Tech
+Google, Microsoft, Apple, Amazon, Meta, NVIDIA, Tesla, Samsung, Intel, AMD, Qualcomm, IBM, Oracle, Salesforce, Adobe
 
-### CLI Mode
-```bash
-uv run python agent.py --cli
-```
-Runs the pipeline once and exits. Used by GitHub Actions.
+### Frontier AI Labs
+OpenAI, Anthropic, xAI, Mistral AI, Cohere, AI21 Labs, Inflection AI, Stability AI, Aleph Alpha, DeepSeek, Zhipu AI, Minimax
+
+### AI Agent Frameworks
+Fetch.ai, LangChain, CrewAI, Composio, Daytona, AutoGPT, Pydantic AI, Agno, Semantic Kernel, Haystack, LlamaIndex, Dify, Flowise, Rivet, SuperAGI, BabyAGI, Camel AI
+
+### AI Infrastructure
+Hugging Face, Databricks, Snowflake, Weights & Biases, Scale AI, Anyscale, Modal, Replicate, Together AI, Groq, Cerebras, CoreWeave, Lambda
+
+### AI Coding Tools
+Cursor, Replit, GitHub Copilot, Codeium, Tabnine, Sourcegraph, Vercel, Supabase
+
+### AI Search & Knowledge
+Perplexity, You.com, Brave Search, Tavily, Exa
+
+### AI Image & Video
+Midjourney, Runway, Pika, ElevenLabs, Luma AI, Leonardo AI
+
+### Robotics & Autonomous
+Boston Dynamics, Figure AI, Waymo, Cruise, 1X Technologies
+
+### Web3 & Crypto AI
+Ocean Protocol, SingularityNET, Bittensor, Render Network, Chainlink
+
+### AI Security & Safety
+Anthropic Safety, OpenAI Safety, Lakera, Protect AI
+
+### AI Data & Vector
+Pinecone, Weaviate, Qdrant, Chroma, Milvus
+
+### Protocols
+MCP Ecosystem, Google A2A
+
+### Emerging Startups
+Glean, Jasper AI, Writer, Adept AI, Harvey AI, Cognition (Devin)
 
 ---
 
-## Article Sections
+## GitHub Actions
 
-| Section | Content |
-|---------|---------|
-| AI News | Latest AI/ML developments |
-| AI Agents | Agentic AI, frameworks, MCP |
-| Web3 & Blockchain | DeFi, protocols, smart contracts |
-| Market & Industry | Funding, acquisitions, earnings |
-| Trending Repos | New GitHub repos this week |
-| What to Learn | Actionable tutorials |
-| Deep Dive | In-depth analysis of top story |
-| Builder's Perspective | Opinionated takes |
+Add secrets: `ASI_ONE_API_KEY`, `GH_PAT` (classic, `repo` scope).
 
----
-
-## GitHub Actions Setup
-
-Add these secrets in your repo settings → Secrets and variables → Actions:
-
-| Secret | Value |
-|--------|-------|
-| `ASI_ONE_API_KEY` | Your ASI1 API key |
-| `GH_PAT` | GitHub PAT (classic) with `repo` scope |
-
-Workflow runs daily at 6:00 AM UTC, or manually via "Run workflow".
+Runs daily at 6:00 AM UTC.
 
 ---
 
 ## Tech Stack
 
-- **Python 3.11** + uv
-- **uAgents** — Fetch.ai agent framework
-- **Chat Protocol** — uagents-core chat spec
-- **ASI1 API** — LLM (asi1-mini) + image generation
-- **feedparser** — RSS parsing
-- **GitPython** — Git operations
-- **GitHub Actions** — Daily automation
+| Component | Technology |
+|-----------|-----------|
+| Agent Framework | uAgents (Fetch.ai) + Chat Protocol |
+| Web Search | DuckDuckGo (ddgs) — no API key needed |
+| Article Scraping | Trafilatura |
+| Image Search | DuckDuckGo Images |
+| LLM | ASI1 API (asi1-mini) |
+| Git | GitPython |
+| CI/CD | GitHub Actions |
+| Language | Python 3.11 + uv |
