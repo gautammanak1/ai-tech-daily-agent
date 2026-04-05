@@ -1,199 +1,123 @@
 # AI Tech Daily Agent
 
-An autonomous agent that fetches AI, Web3, and tech news every day — summarizes it, generates images, writes a full newsletter, and publishes it to GitHub. Zero manual effort.
+A **uAgent** (Fetch.ai) that autonomously generates daily AI/Web3/tech news articles.
 
-[![Daily AI Article](https://github.com/gautammanak1/ai-tech-daily-agent/actions/workflows/daily.yml/badge.svg)](https://github.com/gautammanak1/ai-tech-daily-agent/actions/workflows/daily.yml)
-
-**Live output** → [github.com/gautammanak1/ai-tech-daily](https://github.com/gautammanak1/ai-tech-daily)
+Built with [uAgents](https://github.com/fetchai/uAgents) + chat protocol — can run as a **chat agent** or via **CLI/cron**.
 
 ---
 
 ## What It Does
 
-```
-RSS Feeds (12+) ─┐
-Hacker News API  ─┤─→ Fetch ─→ Deduplicate ─→ Filter & Rank ─→ Summarize (LLM)
-Dev.to Feeds     ─┤                                                  │
-CoinDesk         ─┘                                                  ▼
-                                                          Generate Images (AI)
-GitHub Trending ──────────────────────────────────────────────→ │
-                                                          Generate Article (LLM)
-                                                                │
-                                                    ┌───────────┴───────────┐
-                                                    ▼                       ▼
-                                            Private Repo              Public Repo
-                                         (articles/YYYY-MM-DD.md)  (article.md + README)
-```
+1. Fetches news from **12+ sources** (RSS, Hacker News, Dev.to, CoinDesk)
+2. Filters and ranks by AI / AI Agents / Web3 / Market relevance
+3. Summarizes using ASI1 LLM
+4. Generates images per article via ASI1 Image API
+5. Writes a full newsletter with Deep Dive, Trending Repos, Builder's Perspective
+6. Saves locally with unique filenames (`YYYY-MM-DD.md`, `YYYY-MM-DD-2.md`, ...)
+7. Pushes to public repo without overwriting previous content
 
-Every day at **06:00 UTC**, the agent:
+## Live Output
 
-1. **Fetches** 250+ items from 12+ RSS feeds, Hacker News, Dev.to, and CoinDesk
-2. **Deduplicates** stories across sources using normalized title matching
-3. **Filters** using 150+ keywords across AI, AI Agents, Web3, and market categories
-4. **Ranks** by relevance score (keyword matches + source weight + community engagement)
-5. **Summarizes** each story using an LLM in batches of 8
-6. **Searches** GitHub for trending AI agent repos created in the last week
-7. **Generates images** for each section using ASI1 image generation API
-8. **Writes** a full newsletter with Deep Dive, Insights, and Builder's Perspective
-9. **Publishes** to both private archive and public repo with updated README
-
----
-
-## Article Sections
-
-Each daily article includes:
-
-| Section | What's In It |
-|---------|-------------|
-| **AI News** | Top AI/ML developments with AI-generated section image |
-| **AI Agents & Agentic AI** | Agent frameworks, launches, tools, research |
-| **Web3 & Blockchain** | New products, protocol updates, DeFi (no price speculation) |
-| **Market & Industry** | Funding rounds, acquisitions, regulations |
-| **Trending AI Repos** | New GitHub repos from the past week with stars and descriptions |
-| **What to Learn Today** | Actionable items — tutorials, tools, repos to explore |
-| **Top Trends** | 3-5 patterns emerging across all categories |
-| **Deep Dive** | 3-4 paragraphs going deep on the most important story |
-| **Insights** | Analysis connecting dots across AI, Web3, and agents |
-| **Builder's Perspective** | Opinionated take with a specific call to action |
-
----
-
-## Data Sources
-
-| Source | Type | Content |
-|--------|------|---------|
-| Google News (3 feeds) | RSS | AI, AI Agents, Tech Market |
-| TechCrunch (2 feeds) | RSS | AI + Startups |
-| The Verge | RSS | AI product news |
-| MIT Technology Review | RSS | Research & policy |
-| Ars Technica | RSS | Tech industry |
-| CoinDesk | RSS | Crypto & Web3 |
-| Dev.to (3 feeds) | RSS | AI, Web3, Tutorials |
-| Hacker News | API | Developer community picks |
-| GitHub Search | API | Trending AI agent repos |
-| ASI1 | API | AI-generated images |
-
-All sources are free, public, and legally accessible. No scraping of gated platforms.
-
----
-
-## Quick Start
-
-```bash
-git clone https://github.com/gautammanak1/ai-tech-daily-agent.git
-cd ai-tech-daily-agent
-npm install
-cp .env.example .env
-```
-
-Edit `.env` with your API key:
-
-```env
-LLM_API_KEY=your_asi1_api_key_here
-```
-
-Run:
-
-```bash
-node src/main.js
-```
-
-Dry run (skip git commit):
-
-```bash
-DRY_RUN=true node src/main.js
-```
-
----
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `LLM_API_KEY` | Yes | ASI1 API key (used for LLM + image generation) |
-| `LLM_BASE_URL` | No | API endpoint (default: `https://api.asi1.ai/v1`) |
-| `LLM_MODEL` | No | Model name (default: `asi1`) |
-| `GH_TOKEN` | No | GitHub PAT for pushing to public repo |
-| `DRY_RUN` | No | Set `true` to skip git operations |
-
----
-
-## GitHub Actions Setup
-
-The workflow runs automatically every day. To set up:
-
-1. Go to **Settings → Secrets and variables → Actions**
-2. Add these secrets:
-
-| Secret | Value |
-|--------|-------|
-| `LLM_API_KEY` | Your ASI1 API key |
-| `GH_PAT` | GitHub Personal Access Token (with `contents: write` on `ai-tech-daily` repo) |
-
-3. Done. The workflow runs daily at 06:00 UTC, or trigger manually from the **Actions** tab.
+Latest article: [github.com/gautammanak1/ai-tech-daily](https://github.com/gautammanak1/ai-tech-daily)
 
 ---
 
 ## Architecture
 
 ```
-src/
-├── agents/                  Pipeline stages
-│   ├── fetchNews.js              Orchestrates all source fetchers
-│   ├── filterAI.js               Multi-category keyword scoring & ranking
-│   ├── summarize.js              LLM batch summarization with fallback
-│   └── generateArticle.js        LLM article + image generation
-├── services/                Data source adapters
-│   ├── rssService.js             RSS feed parser (12+ feeds)
-│   ├── hackernewsService.js      HN Firebase API
-│   ├── githubService.js          GitHub trending repo search
-│   ├── imageService.js           ASI1 image generation + base64 save
-│   └── publishService.js         Public repo publisher (article + README + images)
-├── utils/                   Shared utilities
-│   ├── logger.js                 Structured colored logging
-│   ├── fileWriter.js             Article file output
-│   └── dateFormatter.js          Date helpers
+agent.py              ← uAgent entry point (chat mode or CLI mode)
+├── protocols/
+│   └── chat_proto.py ← Chat protocol handler
+├── services/
+│   ├── news_service.py      ← RSS + Hacker News fetching
+│   ├── filter_service.py    ← Keyword scoring, categorization
+│   ├── llm_service.py       ← ASI1 LLM + image generation
+│   ├── github_service.py    ← Trending repo search
+│   ├── article_service.py   ← Newsletter generation
+│   └── publish_service.py   ← Git commit + public repo push
 ├── config/
-│   └── sources.js            Feed URLs, 150+ keywords, weights, config
-└── main.js                   Entry point & orchestrator
+│   └── sources.py           ← RSS feeds, keywords, settings
+├── articles/                ← Generated articles (kept forever)
+├── images/                  ← Generated images (per article)
+└── tests/
 ```
 
 ---
 
-## Fallback Behavior
+## Quick Start
 
-The agent always produces output, no matter what fails:
+```bash
+# Clone
+git clone https://github.com/gautammanak1/ai-tech-daily-agent.git
+cd ai-tech-daily-agent
 
-| Scenario | What Happens |
-|----------|-------------|
-| No LLM key | Falls back to extractive summaries + template article |
-| A feed is down | Logs warning, continues with other sources |
-| Image generation fails | Article generates without images |
-| GitHub search fails | Article generates without trending repos |
-| Article already exists | Skips regeneration for that date |
+# Setup
+cp .env.example .env
+# Edit .env with your API keys
+
+# Install
+pip install uv
+uv sync
+
+# Run as chat agent
+uv run python agent.py
+
+# Run as CLI (one-shot)
+uv run python agent.py --cli
+```
+
+---
+
+## Modes
+
+### Chat Agent Mode (default)
+```bash
+uv run python agent.py
+```
+Runs as a uAgent with chat protocol. Send **"generate"** via Agentverse to create an article.
+
+### CLI Mode
+```bash
+uv run python agent.py --cli
+```
+Runs the pipeline once and exits. Used by GitHub Actions.
+
+---
+
+## Article Sections
+
+| Section | Content |
+|---------|---------|
+| AI News | Latest AI/ML developments |
+| AI Agents | Agentic AI, frameworks, MCP |
+| Web3 & Blockchain | DeFi, protocols, smart contracts |
+| Market & Industry | Funding, acquisitions, earnings |
+| Trending Repos | New GitHub repos this week |
+| What to Learn | Actionable tutorials |
+| Deep Dive | In-depth analysis of top story |
+| Builder's Perspective | Opinionated takes |
+
+---
+
+## GitHub Actions Setup
+
+Add these secrets in your repo settings → Secrets and variables → Actions:
+
+| Secret | Value |
+|--------|-------|
+| `ASI_ONE_API_KEY` | Your ASI1 API key |
+| `GH_PAT` | GitHub PAT (classic) with `repo` scope |
+
+Workflow runs daily at 6:00 AM UTC, or manually via "Run workflow".
 
 ---
 
 ## Tech Stack
 
-- **Runtime**: Node.js 18+
-- **LLM**: ASI1 API (OpenAI-compatible)
-- **Image Generation**: ASI1 Image API
-- **RSS**: rss-parser
-- **HTTP**: axios
-- **Git**: simple-git
-- **CI/CD**: GitHub Actions
-
----
-
-## License
-
-MIT
-
----
-
-## Support
-
-If this project is useful to you, consider sponsoring:
-
-**[github.com/sponsors/gautammanak1](https://github.com/sponsors/gautammanak1)**
+- **Python 3.11** + uv
+- **uAgents** — Fetch.ai agent framework
+- **Chat Protocol** — uagents-core chat spec
+- **ASI1 API** — LLM (asi1-mini) + image generation
+- **feedparser** — RSS parsing
+- **GitPython** — Git operations
+- **GitHub Actions** — Daily automation

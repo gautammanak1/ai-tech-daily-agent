@@ -1,4 +1,12 @@
-node_modules/
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
 .env
-*.log
+.env.*
+!.env.example
+*.egg-info/
+.pytest_cache/
 .DS_Store
+*_data.json
