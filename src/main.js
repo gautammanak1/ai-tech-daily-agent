@@ -30,6 +30,7 @@ async function commitAndPush(filePath, date) {
     await git.add(filePath);
     await git.add('images/');
     await git.commit(`docs: add AI trends article for ${date}`);
+    await git.pull('origin', 'main', { '--rebase': 'true' });
     await git.push();
     logger.info('Changes committed and pushed');
   } catch (err) {
