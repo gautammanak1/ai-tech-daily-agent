@@ -44,6 +44,7 @@ def run_pipeline(dry_run: bool = False) -> str:
     from services.github_service import get_framework_updates
     from services.article_service import generate_article
     from services.publish_service import publish_article
+    from services.devto_service import publish_to_devto
 
     log.info("=== AI Tech Daily Agent ===")
 
@@ -70,6 +71,11 @@ def run_pipeline(dry_run: bool = False) -> str:
 
     date_str = datetime.utcnow().strftime("%Y-%m-%d")
     publish_article(article, filename, company["name"], date_str, dry_run=dry_run)
+
+    log.info("Publishing to Dev.to...")
+    devto_url = publish_to_devto(article, company["name"], company["slug"])
+    if devto_url:
+        log.info(f"Dev.to article: {devto_url}")
 
     return f"**{company['name']}** — {filename} ({line_count} lines)"
 

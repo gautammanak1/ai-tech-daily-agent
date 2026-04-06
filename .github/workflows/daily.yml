@@ -31,7 +31,9 @@ jobs:
       - name: Run pipeline
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          ASI_ONE_API_KEY: ${{ secrets.ASI_ONE_API_KEY }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
           GIT_USER_NAME: gautammanak1
           GIT_USER_EMAIL: gautammanak1@gmail.com
           DRY_RUN: "false"

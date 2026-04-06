@@ -6,6 +6,7 @@
 ![GitHub Actions](https://img.shields.io/github/actions/workflow/status/gautammanak1/ai-tech-daily-agent/daily.yml?style=for-the-badge&label=Daily%20Run&logo=github-actions)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 ![Articles](https://img.shields.io/badge/Companies-100+-blue?style=for-the-badge)
+![Dev.to](https://img.shields.io/badge/Dev.to-Auto_Publish-0A0A0A?style=for-the-badge&logo=devdotto&logoColor=white)
 
 # AI Tech Daily Agent
 
@@ -27,6 +28,7 @@ An AI agent built with **Fetch.ai uAgents** that runs autonomously every day:
 4. **Finds** company logos and tech images
 5. **Writes** a 300-800+ line deep-dive article with code snippets, stats, and source links
 6. **Publishes** to a public GitHub repo — each article as a separate file, old articles never deleted
+7. **Cross-posts** to [Dev.to](https://dev.to) automatically via their API
 
 > No templates. No cached data. Every article is researched and written from scratch using live web data.
 
@@ -35,6 +37,7 @@ An AI agent built with **Fetch.ai uAgents** that runs autonomously every day:
 ## Live Output
 
 [![Latest Article](https://img.shields.io/badge/📰_Read_Latest_Article-Click_Here-blue?style=for-the-badge)](https://github.com/gautammanak1/ai-tech-daily)
+[![Dev.to](https://img.shields.io/badge/dev.to-Auto_Published-0A0A0A?style=for-the-badge&logo=devdotto&logoColor=white)](https://dev.to/gautammanak1)
 
 ---
 
@@ -67,11 +70,13 @@ flowchart TD
 
     SAVE --> PUSH[Push to Public Repo]
     PUSH --> README[Update README — List All Articles]
-    README --> DONE([Done])
+    README --> DEVTO[Publish to Dev.to]
+    DEVTO --> DONE([Done])
 
     style START fill:#6C3CE1,color:#fff,stroke:none
     style DONE fill:#22c55e,color:#fff,stroke:none
     style LLM fill:#FF6B35,color:#fff,stroke:none
+    style DEVTO fill:#08090a,color:#fff,stroke:none
     style Research fill:#1e293b,color:#94a3b8,stroke:#334155
 ```
 
@@ -100,6 +105,7 @@ graph LR
 
     subgraph Output ["Publishing"]
         PUB[publish_service]
+        DEV[devto_service]
     end
 
     A --> CP
@@ -110,7 +116,9 @@ graph LR
     GH -->|19 repos| LLM
     LLM -->|ASI1 API| ART
     ART -->|300+ lines| PUB
+    ART -->|300+ lines| DEV
     PUB -->|GitPython| REPO[(Public Repo)]
+    DEV -->|API| DEVTO[(Dev.to)]
 
     style Core fill:#6C3CE1,color:#fff,stroke:none
     style Data fill:#1e293b,color:#e2e8f0,stroke:#334155
@@ -135,7 +143,8 @@ ai-tech-daily-agent/
 │   ├── github_service.py           # Track 19 framework repos
 │   ├── llm_service.py              # ASI1 LLM calls
 │   ├── article_service.py          # Deep-dive article generation
-│   └── publish_service.py          # Git push to public repo
+│   ├── publish_service.py          # Git push to public repo
+│   └── devto_service.py            # Auto-publish to Dev.to
 ├── config/
 │   └── sources.py                  # Tracked framework repos list
 ├── .github/workflows/
@@ -291,6 +300,7 @@ Add these **repository secrets** (`Settings → Secrets → Actions`):
 |--------|-------------|
 | `ASI_ONE_API_KEY` | Your ASI1 API key for LLM calls |
 | `GH_PAT` | GitHub Personal Access Token (classic) with `repo` scope |
+| `DEVTO_API_KEY` | Dev.to API key for auto-publishing articles |
 
 The workflow runs **daily at 6:00 AM UTC** and can be triggered manually via `workflow_dispatch`.
 
@@ -307,6 +317,7 @@ The workflow runs **daily at 6:00 AM UTC** and can be triggered manually via `wo
 | **LLM** | [ASI1 API](https://asi1.ai) (asi1-mini) | Article generation |
 | **Repos** | GitHub REST API | Track 19 framework repos |
 | **Git** | [GitPython](https://github.com/gitpython-developers/GitPython) | Commit & push to repos |
+| **Blog** | [Dev.to API](https://developers.forem.com/api) | Auto-publish articles |
 | **CI/CD** | GitHub Actions | Daily scheduled runs |
 | **Runtime** | Python 3.11 + [uv](https://github.com/astral-sh/uv) | Fast dependency management |
 
