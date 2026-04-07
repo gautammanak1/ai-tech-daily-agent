@@ -73,7 +73,7 @@ def run_pipeline(dry_run: bool = False) -> str:
     publish_article(article, filename, company["name"], date_str, dry_run=dry_run)
 
     log.info("Publishing to Dev.to...")
-    devto_url = publish_to_devto(article, company["name"], company["slug"])
+    devto_url = publish_to_devto(article, company["name"], company["slug"], filename=filename)
     if devto_url:
         log.info(f"Dev.to article: {devto_url}")
 

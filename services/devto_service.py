@@ -70,6 +70,7 @@ def publish_to_devto(
     article_content: str,
     company_name: str,
     company_slug: str,
+    filename: str = "",
     series: str = "AI Tech Daily",
     published: bool = True,
 ) -> str | None:
@@ -83,7 +84,8 @@ def publish_to_devto(
     tags = _pick_tags(company_slug)
     body = _clean_for_devto(article_content)
 
-    canonical_url = f"https://github.com/gautammanak1/ai-tech-daily"
+    article_file = filename or f"{company_slug}.md"
+    canonical_url = f"https://github.com/gautammanak1/ai-tech-daily/blob/main/articles/{article_file}"
 
     payload = {
         "article": {
