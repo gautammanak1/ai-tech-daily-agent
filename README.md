@@ -32,29 +32,9 @@ This repo is a **full retrieval → LLM → Git → Dev.to** pipeline: **[DuckDu
 | **On GitHub** | [View rendered](https://github.com/gautammanak1/ai-tech-daily-agent/blob/main/docs/MEDIUM_ARTICLE.md) |
 | **Raw (import / RSS / tools)** | [`raw.githubusercontent.com/.../docs/MEDIUM_ARTICLE.md`](https://raw.githubusercontent.com/gautammanak1/ai-tech-daily-agent/main/docs/MEDIUM_ARTICLE.md) |
 
-The article includes **PNG workflow diagrams**, **`run_pipeline` Python**, and **`.github/workflows/daily.yml`** — same content summarized below.
+[`docs/MEDIUM_ARTICLE.md`](docs/MEDIUM_ARTICLE.md) also ships **PNG diagram exports** for tools that do not render Mermaid. **Below, diagrams render natively on GitHub** via Mermaid.
 
-### Workflow diagrams
-
-<p align="center">
-  <img src="docs/images/workflow-pipeline.png" alt="Pipeline: pick company, search, scrape, LLM, Git, Dev.to" width="95%" /><br/>
-  <sub><b>End-to-end pipeline</b></sub>
-</p>
-
-<p align="center">
-  <img src="docs/images/workflow-architecture.png" alt="Architecture: agent core, services, publishing" width="95%" /><br/>
-  <sub><b>Module architecture</b></sub>
-</p>
-
-<p align="center">
-  <img src="docs/images/workflow-sequence.png" alt="Sequence: one CLI or cron run" width="95%" /><br/>
-  <sub><b>Sequence — one <code>--cli</code> run</b></sub>
-</p>
-
-*Sources to regenerate diagrams:* [`docs/images/_kroki_pipeline.mmd`](docs/images/_kroki_pipeline.mmd) · [`_kroki_architecture.mmd`](docs/images/_kroki_architecture.mmd) · [`_kroki_sequence.mmd`](docs/images/_kroki_sequence.mmd) (e.g. [Kroki](https://kroki.io) → PNG).
-
-<details>
-<summary><b>Mermaid source (same logic as PNGs — for editing)</b></summary>
+### How it works
 
 ```mermaid
 flowchart TD
@@ -62,24 +42,30 @@ flowchart TD
     PICK --> CHECK{Covered recently?}
     CHECK -->|Yes| PICK
     CHECK -->|No| SEARCH
+
     subgraph Research [" Real-Time Research "]
         SEARCH[Web Search] --> NEWS[DuckDuckGo News]
         SEARCH --> WEB[DuckDuckGo Web]
         SEARCH --> GH[GitHub Search]
     end
+
     NEWS --> SCRAPE[Scrape Top Articles]
     WEB --> SCRAPE
     GH --> SCRAPE
+
     SCRAPE --> IMG[Find Company Images & Logos]
     IMG --> REPOS[Fetch 19 Framework Repos — Stars, Versions]
+
     REPOS --> LLM[ASI1 LLM Generates Deep-Dive]
     LLM --> VALIDATE{300+ lines?}
     VALIDATE -->|No| LLM
     VALIDATE -->|Yes| SAVE[Save as company-date.md]
+
     SAVE --> PUSH[Push to Public Repo]
     PUSH --> README[Update README — List All Articles]
     README --> DEVTO[Publish to Dev.to]
     DEVTO --> DONE([Done])
+
     style START fill:#6C3CE1,color:#fff,stroke:none
     style DONE fill:#22c55e,color:#fff,stroke:none
     style LLM fill:#FF6B35,color:#fff,stroke:none
@@ -87,26 +73,32 @@ flowchart TD
     style Research fill:#1e293b,color:#94a3b8,stroke:#334155
 ```
 
+### Architecture
+
 ```mermaid
 graph LR
     subgraph Core ["Agent Core"]
         A[agent.py] -->|Chat Protocol| P[chat_proto.py]
     end
+
     subgraph Data ["Data Collection"]
         WS[web_search_service]
         SC[web_scraper_service]
         IS[image_search_service]
         GH[github_service]
     end
+
     subgraph Intelligence ["AI Processing"]
         CP[company_picker]
         LLM[llm_service]
         ART[article_service]
     end
+
     subgraph Output ["Publishing"]
         PUB[publish_service]
         DEV[devto_service]
     end
+
     A --> CP
     CP -->|Select company| WS
     WS -->|DuckDuckGo| SC
@@ -118,13 +110,44 @@ graph LR
     ART -->|300+ lines| DEV
     PUB -->|GitPython| REPO[(Public Repo)]
     DEV -->|API| DEVTO[(Dev.to)]
+
     style Core fill:#6C3CE1,color:#fff,stroke:none
     style Data fill:#1e293b,color:#e2e8f0,stroke:#334155
     style Intelligence fill:#FF6B35,color:#fff,stroke:none
     style Output fill:#22c55e,color:#fff,stroke:none
 ```
 
-</details>
+### One CLI run (sequence)
+
+```mermaid
+sequenceDiagram
+    participant U as Operator / Cron
+    participant A as agent.py
+    participant P as company_picker
+    participant S as web_search_service
+    participant X as web_scraper_service
+    participant I as image_search_service
+    participant G as github_service
+    participant L as llm + article_service
+    participant R as publish_service
+    participant D as devto_service
+
+    U->>A: uv run python agent.py --cli
+    A->>P: pick_company()
+    P-->>A: company dict
+    A->>S: search_all(name)
+    S-->>A: news, web, github
+    A->>X: extract_key_content(...)
+    X-->>A: scraped text
+    A->>I: get_best_images(...)
+    I-->>A: image URLs
+    A->>G: get_framework_updates()
+    G-->>A: repo metrics
+    A->>L: generate_article(...)
+    L-->>A: markdown + filename
+    A->>R: publish_article(...)
+    A->>D: publish_to_devto(...)
+```
 
 ---
 
