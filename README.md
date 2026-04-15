@@ -18,6 +18,129 @@
 
 ---
 
+## Deep dive & technical article
+
+<p align="center">
+  <img src="docs/images/article-cover.png" alt="AI Tech Daily Agent — autonomous research and publishing pipeline" width="100%" />
+</p>
+
+This repo is a **full retrieval → LLM → Git → Dev.to** pipeline: **[DuckDuckGo](https://github.com/deedy5/ddgs)** search, **[Trafilatura](https://github.com/adbar/trafilatura)** scraping, **[ASI1](https://asi1.ai)** long-form writing, **[GitPython](https://github.com/gitpython-developers/GitPython)** to [**ai-tech-daily**](https://github.com/gautammanak1/ai-tech-daily), and the **[Dev.to API](https://developers.forem.com/api)** — orchestrated by **[uAgents](https://github.com/fetchai/uAgents)** or **`--cli`** for cron / **GitHub Actions**.
+
+| Read the write-up | Link |
+|-------------------|------|
+| **Article (Markdown)** | [**docs/MEDIUM_ARTICLE.md**](docs/MEDIUM_ARTICLE.md) |
+| **On GitHub** | [View rendered](https://github.com/gautammanak1/ai-tech-daily-agent/blob/main/docs/MEDIUM_ARTICLE.md) |
+| **Raw (import / RSS / tools)** | [`raw.githubusercontent.com/.../docs/MEDIUM_ARTICLE.md`](https://raw.githubusercontent.com/gautammanak1/ai-tech-daily-agent/main/docs/MEDIUM_ARTICLE.md) |
+
+The article includes **PNG workflow diagrams**, **`run_pipeline` Python**, and **`.github/workflows/daily.yml`** — same content summarized below.
+
+### Workflow diagrams
+
+<p align="center">
+  <img src="docs/images/workflow-pipeline.png" alt="Pipeline: pick company, search, scrape, LLM, Git, Dev.to" width="95%" /><br/>
+  <sub><b>End-to-end pipeline</b></sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/workflow-architecture.png" alt="Architecture: agent core, services, publishing" width="95%" /><br/>
+  <sub><b>Module architecture</b></sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/workflow-sequence.png" alt="Sequence: one CLI or cron run" width="95%" /><br/>
+  <sub><b>Sequence — one <code>--cli</code> run</b></sub>
+</p>
+
+*Sources to regenerate diagrams:* [`docs/images/_kroki_pipeline.mmd`](docs/images/_kroki_pipeline.mmd) · [`_kroki_architecture.mmd`](docs/images/_kroki_architecture.mmd) · [`_kroki_sequence.mmd`](docs/images/_kroki_sequence.mmd) (e.g. [Kroki](https://kroki.io) → PNG).
+
+<details>
+<summary><b>Mermaid source (same logic as PNGs — for editing)</b></summary>
+
+```mermaid
+flowchart TD
+    START([Agent Starts]) --> PICK[Pick Company from 100]
+    PICK --> CHECK{Covered recently?}
+    CHECK -->|Yes| PICK
+    CHECK -->|No| SEARCH
+    subgraph Research [" Real-Time Research "]
+        SEARCH[Web Search] --> NEWS[DuckDuckGo News]
+        SEARCH --> WEB[DuckDuckGo Web]
+        SEARCH --> GH[GitHub Search]
+    end
+    NEWS --> SCRAPE[Scrape Top Articles]
+    WEB --> SCRAPE
+    GH --> SCRAPE
+    SCRAPE --> IMG[Find Company Images & Logos]
+    IMG --> REPOS[Fetch 19 Framework Repos — Stars, Versions]
+    REPOS --> LLM[ASI1 LLM Generates Deep-Dive]
+    LLM --> VALIDATE{300+ lines?}
+    VALIDATE -->|No| LLM
+    VALIDATE -->|Yes| SAVE[Save as company-date.md]
+    SAVE --> PUSH[Push to Public Repo]
+    PUSH --> README[Update README — List All Articles]
+    README --> DEVTO[Publish to Dev.to]
+    DEVTO --> DONE([Done])
+    style START fill:#6C3CE1,color:#fff,stroke:none
+    style DONE fill:#22c55e,color:#fff,stroke:none
+    style LLM fill:#FF6B35,color:#fff,stroke:none
+    style DEVTO fill:#08090a,color:#fff,stroke:none
+    style Research fill:#1e293b,color:#94a3b8,stroke:#334155
+```
+
+```mermaid
+graph LR
+    subgraph Core ["Agent Core"]
+        A[agent.py] -->|Chat Protocol| P[chat_proto.py]
+    end
+    subgraph Data ["Data Collection"]
+        WS[web_search_service]
+        SC[web_scraper_service]
+        IS[image_search_service]
+        GH[github_service]
+    end
+    subgraph Intelligence ["AI Processing"]
+        CP[company_picker]
+        LLM[llm_service]
+        ART[article_service]
+    end
+    subgraph Output ["Publishing"]
+        PUB[publish_service]
+        DEV[devto_service]
+    end
+    A --> CP
+    CP -->|Select company| WS
+    WS -->|DuckDuckGo| SC
+    SC -->|Trafilatura| IS
+    IS -->|Images| GH
+    GH -->|19 repos| LLM
+    LLM -->|ASI1 API| ART
+    ART -->|300+ lines| PUB
+    ART -->|300+ lines| DEV
+    PUB -->|GitPython| REPO[(Public Repo)]
+    DEV -->|API| DEVTO[(Dev.to)]
+    style Core fill:#6C3CE1,color:#fff,stroke:none
+    style Data fill:#1e293b,color:#e2e8f0,stroke:#334155
+    style Intelligence fill:#FF6B35,color:#fff,stroke:none
+    style Output fill:#22c55e,color:#fff,stroke:none
+```
+
+</details>
+
+---
+
+## Quick links
+
+| Resource | URL |
+|----------|-----|
+| **This repo** | [github.com/gautammanak1/ai-tech-daily-agent](https://github.com/gautammanak1/ai-tech-daily-agent) |
+| **Article output repo** | [github.com/gautammanak1/ai-tech-daily](https://github.com/gautammanak1/ai-tech-daily) |
+| **Dev.to** | [dev.to/gautammanak1](https://dev.to/gautammanak1) |
+| **uAgents** | [github.com/fetchai/uAgents](https://github.com/fetchai/uAgents) |
+| **ASI1** | [asi1.ai](https://asi1.ai) |
+| **Issues** | [github.com/gautammanak1/ai-tech-daily-agent/issues](https://github.com/gautammanak1/ai-tech-daily-agent/issues) |
+
+---
+
 ## What Is This?
 
 An AI agent built with **Fetch.ai uAgents** that runs autonomously every day:
@@ -41,89 +164,74 @@ An AI agent built with **Fetch.ai uAgents** that runs autonomously every day:
 
 ---
 
-## How It Works
+## Pipeline code (`agent.py`)
 
-```mermaid
-flowchart TD
-    START([Agent Starts]) --> PICK[Pick Company from 100]
-    PICK --> CHECK{Covered recently?}
-    CHECK -->|Yes| PICK
-    CHECK -->|No| SEARCH
+Production order matches **`run_pipeline`** — used by **`--cli`** and **GitHub Actions**:
 
-    subgraph Research [" Real-Time Research "]
-        SEARCH[Web Search] --> NEWS[DuckDuckGo News]
-        SEARCH --> WEB[DuckDuckGo Web]
-        SEARCH --> GH[GitHub Search]
-    end
+```python
+def run_pipeline(dry_run: bool = False) -> str:
+    from datetime import datetime
+    from services.company_picker import pick_company
+    from services.web_search_service import search_all
+    from services.web_scraper_service import extract_key_content
+    from services.image_search_service import get_best_images
+    from services.github_service import get_framework_updates
+    from services.article_service import generate_article
+    from services.publish_service import publish_article
+    from services.devto_service import publish_to_devto
 
-    NEWS --> SCRAPE[Scrape Top Articles]
-    WEB --> SCRAPE
-    GH --> SCRAPE
-
-    SCRAPE --> IMG[Find Company Images & Logos]
-    IMG --> REPOS[Fetch 19 Framework Repos — Stars, Versions]
-
-    REPOS --> LLM[ASI1 LLM Generates Deep-Dive]
-    LLM --> VALIDATE{300+ lines?}
-    VALIDATE -->|No| LLM
-    VALIDATE -->|Yes| SAVE[Save as company-date.md]
-
-    SAVE --> PUSH[Push to Public Repo]
-    PUSH --> README[Update README — List All Articles]
-    README --> DEVTO[Publish to Dev.to]
-    DEVTO --> DONE([Done])
-
-    style START fill:#6C3CE1,color:#fff,stroke:none
-    style DONE fill:#22c55e,color:#fff,stroke:none
-    style LLM fill:#FF6B35,color:#fff,stroke:none
-    style DEVTO fill:#08090a,color:#fff,stroke:none
-    style Research fill:#1e293b,color:#94a3b8,stroke:#334155
+    company = pick_company()
+    search_data = search_all(company["name"])
+    scraped = extract_key_content(search_data)
+    images = get_best_images(company["name"], company["slug"])
+    frameworks = get_framework_updates()
+    article, filename = generate_article(
+        company, search_data, scraped, frameworks, images
+    )
+    date_str = datetime.utcnow().strftime("%Y-%m-%d")
+    publish_article(article, filename, company["name"], date_str, dry_run=dry_run)
+    publish_to_devto(article, company["name"], company["slug"], filename=filename)
+    return f"**{company['name']}** — {filename} ({len(article.splitlines())} lines)"
 ```
 
 ---
 
-## Architecture
+## GitHub Actions (`.github/workflows/daily.yml`)
 
-```mermaid
-graph LR
-    subgraph Core ["Agent Core"]
-        A[agent.py] -->|Chat Protocol| P[chat_proto.py]
-    end
+Runs **6:00 AM UTC** daily and **`workflow_dispatch`**. Full file: [`.github/workflows/daily.yml`](.github/workflows/daily.yml).
 
-    subgraph Data ["Data Collection"]
-        WS[web_search_service]
-        SC[web_scraper_service]
-        IS[image_search_service]
-        GH[github_service]
-    end
+```yaml
+name: Daily AI Tech Article
 
-    subgraph Intelligence ["AI Processing"]
-        CP[company_picker]
-        LLM[llm_service]
-        ART[article_service]
-    end
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
 
-    subgraph Output ["Publishing"]
-        PUB[publish_service]
-        DEV[devto_service]
-    end
+permissions:
+  contents: write
 
-    A --> CP
-    CP -->|Select company| WS
-    WS -->|DuckDuckGo| SC
-    SC -->|Trafilatura| IS
-    IS -->|Images| GH
-    GH -->|19 repos| LLM
-    LLM -->|ASI1 API| ART
-    ART -->|300+ lines| PUB
-    ART -->|300+ lines| DEV
-    PUB -->|GitPython| REPO[(Public Repo)]
-    DEV -->|API| DEVTO[(Dev.to)]
-
-    style Core fill:#6C3CE1,color:#fff,stroke:none
-    style Data fill:#1e293b,color:#e2e8f0,stroke:#334155
-    style Intelligence fill:#FF6B35,color:#fff,stroke:none
-    style Output fill:#22c55e,color:#fff,stroke:none
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install uv
+      - run: uv sync --no-dev
+      - name: Run pipeline
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          ASI_ONE_API_KEY: ${{ secrets.ASI_ONE_API_KEY }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          DRY_RUN: "false"
+        run: uv run python agent.py --cli
 ```
 
 ---
@@ -132,7 +240,7 @@ graph LR
 
 ```
 ai-tech-daily-agent/
-├── agent.py                        # uAgent entry point — chat mode or CLI
+├── agent.py                        # uAgent entry — chat or CLI; run_pipeline
 ├── protocols/
 │   └── chat_proto.py               # Fetch.ai chat protocol handler
 ├── services/
@@ -147,8 +255,11 @@ ai-tech-daily-agent/
 │   └── devto_service.py            # Auto-publish to Dev.to
 ├── config/
 │   └── sources.py                  # Tracked framework repos list
+├── docs/
+│   ├── MEDIUM_ARTICLE.md           # Full technical article + diagram URLs
+│   └── images/                     # Cover + workflow PNGs; Kroki .mmd sources
 ├── .github/workflows/
-│   └── daily.yml                   # GitHub Actions — runs daily at 6 AM UTC
+│   └── daily.yml                   # GitHub Actions — daily 6 AM UTC
 ├── pyproject.toml                  # Dependencies (uv)
 └── .env.example                    # Environment variables template
 ```
@@ -298,11 +409,12 @@ Add these **repository secrets** (`Settings → Secrets → Actions`):
 
 | Secret | Description |
 |--------|-------------|
-| `ASI_ONE_API_KEY` | Your ASI1 API key for LLM calls |
-| `GH_PAT` | GitHub Personal Access Token (classic) with `repo` scope |
+| `ASI_ONE_API_KEY` | ASI1 API key for LLM calls |
+| `LLM_API_KEY` | Optional; workflow passes this if you split LLM credentials |
+| `GH_PAT` | GitHub PAT (classic) with `repo` — checkout + push to [ai-tech-daily](https://github.com/gautammanak1/ai-tech-daily) |
 | `DEVTO_API_KEY` | Dev.to API key for auto-publishing articles |
 
-The workflow runs **daily at 6:00 AM UTC** and can be triggered manually via `workflow_dispatch`.
+The workflow runs **daily at 6:00 AM UTC** and can be triggered manually via `workflow_dispatch`. See [`.github/workflows/daily.yml`](.github/workflows/daily.yml) for `GIT_USER_NAME` / `GIT_USER_EMAIL` in the job env.
 
 ---
 

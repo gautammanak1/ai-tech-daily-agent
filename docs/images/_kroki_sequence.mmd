@@ -1,0 +1,27 @@
+sequenceDiagram
+    participant U as Operator / Cron
+    participant A as agent.py
+    participant P as company_picker
+    participant S as web_search_service
+    participant X as web_scraper_service
+    participant I as image_search_service
+    participant G as github_service
+    participant L as llm + article_service
+    participant R as publish_service
+    participant D as devto_service
+
+    U->>A: uv run python agent.py --cli
+    A->>P: pick_company()
+    P-->>A: company dict
+    A->>S: search_all(name)
+    S-->>A: news, web, github
+    A->>X: extract_key_content(...)
+    X-->>A: scraped text
+    A->>I: get_best_images(...)
+    I-->>A: image URLs
+    A->>G: get_framework_updates()
+    G-->>A: repo metrics
+    A->>L: generate_article(...)
+    L-->>A: markdown + filename
+    A->>R: publish_article(...)
+    A->>D: publish_to_devto(...)

@@ -1,0 +1,28 @@
+flowchart TD
+    START([Agent Starts]) --> PICK[Pick Company from 100]
+    PICK --> CHECK{Covered recently?}
+    CHECK -->|Yes| PICK
+    CHECK -->|No| SEARCH
+
+    subgraph Research [Real-Time Research]
+        SEARCH[Web Search] --> NEWS[DuckDuckGo News]
+        SEARCH --> WEB[DuckDuckGo Web]
+        SEARCH --> GH[GitHub Search]
+    end
+
+    NEWS --> SCRAPE[Scrape Top Articles]
+    WEB --> SCRAPE
+    GH --> SCRAPE
+
+    SCRAPE --> IMG[Find Company Images and Logos]
+    IMG --> REPOS[Fetch 19 Framework Repos]
+
+    REPOS --> LLM[ASI1 LLM Generates Deep-Dive]
+    LLM --> VALIDATE{300+ lines?}
+    VALIDATE -->|No| LLM
+    VALIDATE -->|Yes| SAVE[Save as company-date.md]
+
+    SAVE --> PUSH[Push to Public Repo]
+    PUSH --> RINDEX[Update README]
+    RINDEX --> DEVTO[Publish to Dev.to]
+    DEVTO --> DONE([Done])

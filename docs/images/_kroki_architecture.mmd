@@ -1,0 +1,34 @@
+graph LR
+    subgraph Core [Agent Core]
+        A[agent.py] -->|Chat Protocol| P[chat_proto.py]
+    end
+
+    subgraph Data [Data Collection]
+        WS[web_search_service]
+        SC[web_scraper_service]
+        IS[image_search_service]
+        GH[github_service]
+    end
+
+    subgraph Intelligence [AI Processing]
+        CP[company_picker]
+        LLM[llm_service]
+        ART[article_service]
+    end
+
+    subgraph Output [Publishing]
+        PUB[publish_service]
+        DEV[devto_service]
+    end
+
+    A --> CP
+    CP -->|Select company| WS
+    WS -->|DuckDuckGo| SC
+    SC -->|Trafilatura| IS
+    IS -->|Images| GH
+    GH -->|19 repos| LLM
+    LLM -->|ASI1 API| ART
+    ART -->|300+ lines| PUB
+    ART -->|300+ lines| DEV
+    PUB -->|GitPython| REPO[(Public Repo)]
+    DEV -->|API| DEVTO[(Dev.to)]
