@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Publish PROJECT_DEEP_DIVE.md to Dev.to (images must use absolute raw GitHub URLs)."""
+"""Publish or update PROJECT_DEEP_DIVE.md on Dev.to.
+
+Uses jsDelivr URLs for images in the markdown (Dev.to often fails to proxy
+raw.githubusercontent.com; jsDelivr serves the same Git files with reliable CORS).
+"""
 
 from __future__ import annotations
 
@@ -16,9 +20,38 @@ dotenv.load_dotenv(ROOT / ".env")
 
 DEVTO_API = "https://dev.to/api/articles"
 MD_FILE = ROOT / "PROJECT_DEEP_DIVE.md"
+CANONICAL_SUBSTR = "PROJECT_DEEP_DIVE.md"
 
-# Dev.to allows at most 4 tags
 TAGS = ["ai", "programming", "architecture", "tutorial"]
+
+
+def _find_existing_article_id(api_key: str) -> int | None:
+    """Find our deep-dive post by canonical_url (set on first publish)."""
+    headers = {"api-key": api_key, "User-Agent": "AI-Tech-Daily-Agent/1.0"}
+    page = 1
+    while page <= 10:
+        resp = requests.get(
+            f"{DEVTO_API}/me",
+            params={"page": page, "per_page": 100},
+            headers=headers,
+            timeout=60,
+        )
+        if resp.status_code != 200:
+            print(f"Warning: articles/me page {page}: {resp.status_code}", file=sys.stderr)
+            return None
+        data = resp.json()
+        # API returns a list of article summary dicts
+        for article in data:
+            canonical = article.get("canonical_url") or ""
+            if CANONICAL_SUBSTR in canonical:
+                return int(article["id"])
+            title = article.get("title") or ""
+            if "Complete Architecture Deep Dive" in title:
+                return int(article["id"])
+        if len(data) < 100:
+            break
+        page += 1
+    return None
 
 
 def main() -> int:
@@ -55,8 +88,7 @@ def main() -> int:
     desc = (
         "Complete architecture deep dive: uAgents pipeline, services, data flow, "
         "deployment, and patterns — with diagrams."
-    )
-    desc = desc[:300]
+    )[:300]
 
     payload = {
         "article": {
@@ -75,12 +107,27 @@ def main() -> int:
         "User-Agent": "AI-Tech-Daily-Agent/1.0",
     }
 
-    print(f"Publishing {MD_FILE.name} ({len(body)} chars body) to Dev.to…")
-    resp = requests.post(DEVTO_API, json=payload, headers=headers, timeout=120)
-    if resp.status_code == 201:
+    override_id = (os.getenv("DEVTO_DEEP_DIVE_ARTICLE_ID") or "").strip()
+    article_id: int | None = int(override_id) if override_id.isdigit() else None
+    if article_id is None:
+        print("Looking for existing Dev.to article (canonical URL or title match)…")
+        article_id = _find_existing_article_id(api_key)
+
+    if article_id is not None:
+        url = f"{DEVTO_API}/{article_id}"
+        print(f"Updating article id={article_id} ({len(body)} chars)…")
+        resp = requests.put(url, json=payload, headers=headers, timeout=120)
+        ok_code = 200
+    else:
+        url = DEVTO_API
+        print(f"Creating new article ({len(body)} chars)…")
+        resp = requests.post(url, json=payload, headers=headers, timeout=120)
+        ok_code = 201
+
+    if resp.status_code == ok_code:
         data = resp.json()
-        url = data.get("url", "")
-        print(f"OK: {url}")
+        out_url = data.get("url", "")
+        print(f"OK: {out_url}")
         return 0
     try:
         err = resp.json()

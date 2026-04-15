@@ -1,7 +1,7 @@
 # AI Tech Daily Agent — Complete Architecture Deep Dive & Workflow Analysis
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/gautammanak1/ai-tech-daily-agent/main/docs/images/article-cover.png" alt="AI Tech Daily Agent — from search and data to published deep-dive article" width="100%" />
+  <img src="https://cdn.jsdelivr.net/gh/gautammanak1/ai-tech-daily-agent@main/docs/images/article-cover.png" alt="AI Tech Daily Agent — from search and data to published deep-dive article" width="100%" />
 </p>
 
 **A Comprehensive Exploration of Building an Autonomous AI Agent for Daily Tech Journalism**
@@ -136,9 +136,9 @@ This structure follows clean architecture principles with clear separation of co
 
 The AI Tech Daily Agent follows a multi-layered architecture designed for modularity, scalability, and maintainability.
 
-**Illustrative architecture** (PNG in repo: [`docs/deep-dive/architecture.png`](https://github.com/gautammanak1/ai-tech-daily-agent/blob/main/docs/deep-dive/architecture.png)):
+**Illustrative architecture** ([view on GitHub](https://github.com/gautammanak1/ai-tech-daily-agent/blob/main/docs/deep-dive/architecture.png)):
 
-![System architecture — layers from Agentverse/uAgents through agent.py, services, and external APIs](https://raw.githubusercontent.com/gautammanak1/ai-tech-daily-agent/main/docs/deep-dive/architecture.png)
+![System architecture — layers from Agentverse/uAgents through agent.py, services, and external APIs](https://cdn.jsdelivr.net/gh/gautammanak1/ai-tech-daily-agent@main/docs/deep-dive/architecture.png)
 
 ### Architectural Principles
 
@@ -407,9 +407,9 @@ The service includes robust error handling for:
 
 The AI Tech Daily Agent executes a comprehensive pipeline that transforms a simple command into a published article. Here's the complete workflow.
 
-**Illustrative pipeline** (PNG in repo: [`docs/deep-dive/pipeline.png`](https://github.com/gautammanak1/ai-tech-daily-agent/blob/main/docs/deep-dive/pipeline.png)):
+**Illustrative pipeline** ([view on GitHub](https://github.com/gautammanak1/ai-tech-daily-agent/blob/main/docs/deep-dive/pipeline.png)):
 
-![End-to-end pipeline from generate command through publishing and history](https://raw.githubusercontent.com/gautammanak1/ai-tech-daily-agent/main/docs/deep-dive/pipeline.png)
+![End-to-end pipeline from generate command through publishing and history](https://cdn.jsdelivr.net/gh/gautammanak1/ai-tech-daily-agent@main/docs/deep-dive/pipeline.png)
 
 ### Pipeline Execution Details
 
@@ -1292,7 +1292,7 @@ Once initialized, the agent enters its main loop:
 
 **Message Processing Loop** (agent / protocol context — same visual language as [Core Architecture](#core-architecture)):
 
-![High-level architecture: agent surface, services, and external systems](https://raw.githubusercontent.com/gautammanak1/ai-tech-daily-agent/main/docs/deep-dive/architecture.png)
+![High-level architecture: agent surface, services, and external systems](https://cdn.jsdelivr.net/gh/gautammanak1/ai-tech-daily-agent@main/docs/deep-dive/architecture.png)
 
 Flow in words: listen for incoming messages → parse type (`ChatMessage`, acknowledgements, session start/end) → route `ChatMessage` to text handlers (`generate` / `status` / `help`) → send responses → wait for the next message.
 
@@ -1300,7 +1300,7 @@ Flow in words: listen for incoming messages → parse type (`ChatMessage`, ackno
 
 When `generate` is triggered, the same end-to-end pipeline as [Workflow Pipeline](#workflow-pipeline) runs:
 
-![Pipeline: company pick → research → LLM article → publish → history](https://raw.githubusercontent.com/gautammanak1/ai-tech-daily-agent/main/docs/deep-dive/pipeline.png)
+![Pipeline: company pick → research → LLM article → publish → history](https://cdn.jsdelivr.net/gh/gautammanak1/ai-tech-daily-agent@main/docs/deep-dive/pipeline.png)
 
 Steps: log start → `run_pipeline()` → select company → search web/news → GitHub data → scrape → generate article → find images → publish → update history → log completion → return the result string to the user.
 
@@ -1369,9 +1369,9 @@ signal.signal(signal.SIGTERM, shutdown)
 
 ### Complete Data Flow Diagram
 
-**Illustrative data flow** (PNG in repo: [`docs/deep-dive/data-flow.png`](https://github.com/gautammanak1/ai-tech-daily-agent/blob/main/docs/deep-dive/data-flow.png)):
+**Illustrative data flow** ([view on GitHub](https://github.com/gautammanak1/ai-tech-daily-agent/blob/main/docs/deep-dive/data-flow.png)):
 
-![Data sources through company picker, search, scraper, images, article, publish, history](https://raw.githubusercontent.com/gautammanak1/ai-tech-daily-agent/main/docs/deep-dive/data-flow.png)
+![Data sources through company picker, search, scraper, images, article, publish, history](https://cdn.jsdelivr.net/gh/gautammanak1/ai-tech-daily-agent@main/docs/deep-dive/data-flow.png)
 
 ### Data Transformation Examples
 
