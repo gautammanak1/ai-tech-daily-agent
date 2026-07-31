@@ -257,6 +257,20 @@ jobs:
         run: uv run python agent.py --cli
 ```
 
+### Manual topic article (standalone Dev.to post)
+
+Use **Actions → Topic Article (manual) → Run workflow** and enter any topic. Workflow: [`.github/workflows/topic.yml`](.github/workflows/topic.yml).
+
+- Generates a deep-dive for that topic (known company match or free-form)
+- Pushes markdown to [ai-tech-daily](https://github.com/gautammanak1/ai-tech-daily)
+- Publishes to Dev.to **outside** the "AI Tech Daily" series (standalone post)
+
+Locally:
+
+```bash
+uv run python agent.py --cli --topic "doc2mcp" --no-series
+```
+
 ---
 
 ## Project Structure
