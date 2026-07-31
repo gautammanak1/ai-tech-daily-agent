@@ -87,17 +87,19 @@ def publish_to_devto(
     article_file = filename or f"{company_slug}.md"
     canonical_url = f"https://github.com/gautammanak1/ai-tech-daily/blob/main/articles/{article_file}"
 
-    payload = {
-        "article": {
-            "title": title,
-            "published": published,
-            "body_markdown": body,
-            "tags": tags,
-            "series": series,
-            "canonical_url": canonical_url,
-            "description": f"A comprehensive deep-dive into {company_name} — latest news, products, code examples, and what it means for developers.",
-        }
+    article_payload = {
+        "title": title,
+        "published": published,
+        "body_markdown": body,
+        "tags": tags,
+        "canonical_url": canonical_url,
+        "description": f"A comprehensive deep-dive into {company_name} — latest news, products, code examples, and what it means for developers.",
     }
+    # Omit series entirely for standalone posts (manual topic runs).
+    if series and series.strip():
+        article_payload["series"] = series.strip()
+
+    payload = {"article": article_payload}
 
     headers = {
         "api-key": api_key,

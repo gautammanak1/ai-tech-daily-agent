@@ -3,6 +3,7 @@
 import json
 import logging
 import random
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -165,6 +166,42 @@ def pick_company() -> dict:
 
     log.info(f"Today's company: {chosen['name']} (topics: {', '.join(chosen['topics'][:4])})")
     return chosen
+
+
+def _slugify(text: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", text.strip().lower())
+    return slug.strip("-") or "topic"
+
+
+def resolve_company(topic: str) -> dict:
+    """Resolve a free-form topic to a company dict (known list or custom).
+
+    Does not update company_history — manual topic runs stay outside daily rotation.
+    """
+    topic = (topic or "").strip()
+    if not topic:
+        raise ValueError("topic is required")
+
+    needle = topic.lower()
+    slug_needle = _slugify(topic)
+
+    for company in COMPANIES:
+        if company["slug"] == slug_needle or company["name"].lower() == needle:
+            log.info(f"Resolved topic to known company: {company['name']}")
+            return dict(company)
+
+    for company in COMPANIES:
+        if needle in company["name"].lower() or slug_needle in company["slug"]:
+            log.info(f"Resolved topic to known company: {company['name']}")
+            return dict(company)
+
+    custom = {
+        "name": topic,
+        "slug": slug_needle,
+        "topics": [topic],
+    }
+    log.info(f"Using custom topic: {custom['name']} (slug={custom['slug']})")
+    return custom
 
 
 def get_history() -> list[dict]:
